@@ -1,0 +1,377 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap");
+@import "tailwindcss";
+@import "@heroui/styles";
+
+:root {
+  --luxury-black: #050505;
+  --luxury-surface: #111111;
+  --luxury-card: rgba(20, 20, 20, 0.75);
+  --luxury-red: #c1121f;
+  --luxury-wine: #4a0e17;
+  --luxury-burgundy: #640d14;
+  --luxury-rose-gold: #e7b98a;
+  --luxury-gold: #d4af37;
+  --luxury-text-muted: #b5b5b5;
+  --luxury-border: rgba(255, 255, 255, 0.08);
+}
+
+html { background: var(--luxury-black); }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 28%, rgba(122, 0, 21, 0.16), transparent 22rem),
+    radial-gradient(circle at 88% 58%, rgba(193, 18, 31, 0.12), transparent 24rem),
+    #050505;
+  color: #fff;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.font-playfair,
+.font-serif {
+  font-family: "Playfair Display", Georgia, serif !important;
+}
+
+/* The landing content below the existing hero gets a shared cinematic canvas. */
+.luxury-shell {
+  position: relative;
+  isolation: isolate;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  align-self: stretch;
+  background: #050505;
+}
+
+.luxury-shell > section {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.luxury-shell::before,
+.luxury-shell::after {
+  position: absolute;
+  z-index: -1;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 9999px;
+  content: "";
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+.luxury-shell::before {
+  top: 57rem;
+  left: -16rem;
+  background: rgba(122, 0, 21, 0.22);
+}
+
+.luxury-shell::after {
+  top: 172rem;
+  right: -17rem;
+  background: rgba(193, 18, 31, 0.16);
+}
+
+/* Do not alter #banner: its design is deliberately kept intact. */
+.luxury-shell section:not(#banner) {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--luxury-border) !important;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(122, 0, 21, 0.18), transparent 31%),
+    radial-gradient(circle at 88% 78%, rgba(193, 18, 31, 0.10), transparent 32%),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.92), #050505) !important;
+  color: #fff;
+}
+
+.luxury-shell section:not(#banner) > .absolute:not(.z-10):not(.z-20) {
+  opacity: 0.18 !important;
+  filter: hue-rotate(320deg) saturate(0.7);
+}
+
+.luxury-shell section:not(#banner) h2,
+.luxury-shell section:not(#banner) h3,
+.luxury-shell section:not(#banner) h4 {
+  color: #fff !important;
+  letter-spacing: -0.025em;
+}
+
+.luxury-shell section:not(#banner) h2 {
+  font-family: "Playfair Display", Georgia, serif !important;
+  text-wrap: balance;
+}
+
+.luxury-shell section:not(#banner) p,
+.luxury-shell section:not(#banner) label,
+.luxury-shell section:not(#banner) [class*="text-slate"],
+.luxury-shell section:not(#banner) [class*="text-gray"] {
+  color: var(--luxury-text-muted) !important;
+}
+
+.luxury-shell section:not(#banner) [class*="text-rose"],
+.luxury-shell section:not(#banner) [class*="text-pink"] {
+  color: var(--luxury-rose-gold) !important;
+}
+
+/* Glass surfaces unify the older light cards without changing their structure. */
+.luxury-shell section:not(#banner) [class*="bg-white"],
+.luxury-shell section:not(#banner) [class*="bg-slate"],
+.luxury-shell section:not(#banner) [class*="bg-amber"],
+.luxury-shell section:not(#banner) [class*="bg-rose"],
+.luxury-shell section:not(#banner) [class*="bg-purple"],
+.luxury-shell section:not(#banner) [class*="bg-pink"] {
+  border-color: var(--luxury-border) !important;
+  background-color: rgba(20, 20, 20, 0.75) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 40px rgba(193, 18, 31, 0.12) !important;
+  backdrop-filter: blur(20px);
+}
+
+.luxury-shell section:not(#banner) [class*="rounded-3xl"],
+.luxury-shell section:not(#banner) [class*="rounded-2xl"] {
+  transition: transform 300ms ease, border-color 300ms ease, box-shadow 300ms ease, background-color 300ms ease;
+}
+
+.luxury-shell section:not(#banner) [class*="rounded-3xl"]:hover,
+.luxury-shell section:not(#banner) [class*="rounded-2xl"]:hover {
+  border-color: rgba(231, 185, 138, 0.24) !important;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.58), 0 0 42px rgba(193, 18, 31, 0.20) !important;
+}
+
+.luxury-shell section:not(#banner) input,
+.luxury-shell section:not(#banner) textarea,
+.luxury-shell section:not(#banner) select {
+  border-color: rgba(231, 185, 138, 0.18) !important;
+  background: rgba(5, 5, 5, 0.68) !important;
+  color: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.luxury-shell section:not(#banner) input::placeholder,
+.luxury-shell section:not(#banner) textarea::placeholder { color: #777 !important; }
+
+.luxury-shell section:not(#banner) input:focus,
+.luxury-shell section:not(#banner) textarea:focus,
+.luxury-shell section:not(#banner) select:focus {
+  border-color: rgba(231, 185, 138, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(193, 18, 31, 0.18), 0 0 24px rgba(193, 18, 31, 0.18) !important;
+}
+
+/* Existing bright CTAs now inherit a restrained burgundy-to-crimson finish. */
+.luxury-shell section:not(#banner) button[class*="bg-slate"],
+.luxury-shell section:not(#banner) button[class*="bg-rose"],
+.luxury-shell section:not(#banner) button[class*="bg-pink"] {
+  border: 1px solid rgba(231, 185, 138, 0.20) !important;
+  background: linear-gradient(135deg, #640d14, #c1121f) !important;
+  color: #fff !important;
+  box-shadow: 0 12px 30px rgba(193, 18, 31, 0.22) !important;
+}
+
+.luxury-shell section:not(#banner) button[class*="bg-slate"]:hover,
+.luxury-shell section:not(#banner) button[class*="bg-rose"]:hover,
+.luxury-shell section:not(#banner) button[class*="bg-pink"]:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(193, 18, 31, 0.45) !important;
+}
+
+/* Modal overlays and popovers retain the same dark-glass material. */
+.luxury-shell [class*="fixed"][class*="bg-slate"],
+.luxury-shell [class*="fixed"] > [class*="bg-white"] {
+  background-color: rgba(5, 5, 5, 0.84) !important;
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .luxury-shell::before,
+  .luxury-shell::after { animation: luxury-drift 12s ease-in-out infinite alternate; }
+}
+
+@keyframes luxury-drift {
+  to { transform: translate3d(2rem, -1.5rem, 0) scale(1.08); }
+}
+
+/* Application screens: dashboard, authentication, error state and footer use the same material system. */
+.luxury-login,
+.luxury-dashboard,
+.luxury-not-found {
+  background:
+    radial-gradient(circle at 12% 15%, rgba(122, 0, 21, 0.26), transparent 26rem),
+    radial-gradient(circle at 88% 82%, rgba(193, 18, 31, 0.16), transparent 30rem),
+    #050505 !important;
+  color: #fff;
+}
+
+.luxury-footer {
+  border-color: var(--luxury-border) !important;
+  background:
+    radial-gradient(circle at 74% 0%, rgba(122, 0, 21, 0.26), transparent 30%),
+    #050505 !important;
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="bg-white"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="bg-slate-50"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="bg-rose-50"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="bg-pink-50"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="bg-amber-50"] {
+  border-color: var(--luxury-border) !important;
+  background-color: rgba(20, 20, 20, 0.78) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 38px rgba(193, 18, 31, 0.10) !important;
+  backdrop-filter: blur(20px);
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="text-slate"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) [class*="text-gray"] {
+  color: var(--luxury-text-muted) !important;
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) h1,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) h2,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) h3,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) h4 {
+  color: #fff !important;
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found, .luxury-footer) .font-serif {
+  font-family: "Playfair Display", Georgia, serif !important;
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) input,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) textarea,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) select {
+  color: #fff !important;
+  border-color: rgba(231, 185, 138, 0.2) !important;
+  background: rgba(5, 5, 5, 0.72) !important;
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-rose"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-red"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-blue"],
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-slate"] {
+  border-color: rgba(231, 185, 138, 0.24) !important;
+  background: linear-gradient(135deg, #640d14, #c1121f) !important;
+  box-shadow: 0 12px 36px rgba(193, 18, 31, 0.28) !important;
+}
+
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-rose"]:hover,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-red"]:hover,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-blue"]:hover,
+:is(.luxury-login, .luxury-dashboard, .luxury-not-found) button[class*="bg-slate"]:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(193, 18, 31, 0.45) !important;
+}
+
+.luxury-dashboard aside,
+.luxury-dashboard header {
+  border-color: var(--luxury-border) !important;
+  background-color: rgba(12, 12, 12, 0.88) !important;
+  backdrop-filter: blur(20px);
+}
+
+.luxury-dashboard table { color: var(--luxury-text-muted); }
+.luxury-dashboard thead,
+.luxury-dashboard tr:hover { background: rgba(193, 18, 31, 0.10) !important; }
+.luxury-dashboard td,
+.luxury-dashboard th { border-color: var(--luxury-border) !important; }
+
+.luxury-footer [class*="bg-slate"] {
+  border-color: var(--luxury-border) !important;
+  background-color: rgba(20, 20, 20, 0.7) !important;
+}
+
+/* Responsive foundation: safe sizing, touch-friendly controls, and no horizontal spill. */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+img,
+video,
+canvas { max-width: 100%; height: auto; }
+
+button,
+a,
+input,
+select,
+textarea { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 767px) {
+  html { font-size: 16px; }
+
+  .luxury-shell section:not(#banner),
+  .luxury-not-found { scroll-margin-top: 6.5rem; }
+
+  .luxury-shell section:not(#banner) { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  /* Keep the mobile canvas calm and prevent decorative blur layers from creating visible gutters. */
+  .luxury-shell { overflow-x: clip; }
+  .luxury-shell::before,
+  .luxury-shell::after { display: none; }
+
+  .luxury-shell section:not(#banner) > .absolute:not(.z-10):not(.z-20) { display: none; }
+
+  .luxury-shell section:not(#banner) h2,
+  .luxury-dashboard h1,
+  .luxury-dashboard h2,
+  .luxury-not-found h1 { line-height: 1.12; }
+
+  .luxury-shell section:not(#banner) h2,
+  .luxury-dashboard h1,
+  .luxury-dashboard h2 { font-size: clamp(1.75rem, 7vw, 2.5rem) !important; }
+
+  .luxury-login { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+  .luxury-login [class*="rounded-[2.5rem]"],
+  .luxury-dashboard [class*="rounded-[2.5rem]"],
+  .luxury-not-found [class*="rounded-[2.5rem]"] { border-radius: 1.5rem !important; }
+
+  .luxury-login input,
+  .luxury-dashboard input,
+  .luxury-dashboard select,
+  .luxury-dashboard textarea,
+  .luxury-not-found input,
+  .luxury-not-found select,
+  .luxury-not-found textarea { font-size: 16px !important; }
+
+  .luxury-dashboard main { min-width: 0; overflow-x: clip; }
+  .luxury-dashboard main > div { min-width: 0; }
+
+  .luxury-dashboard table { min-width: 38rem; }
+  .luxury-dashboard [class*="overflow-x-auto"] { -webkit-overflow-scrolling: touch; }
+
+  .luxury-shell [class*="fixed"][class*="inset-0"] > [class*="max-w-"],
+  .luxury-dashboard [class*="fixed"][class*="inset-0"] > [class*="max-w-"] {
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+  }
+
+  .luxury-shell [class*="max-h-"][class*="overflow-y-auto"],
+  .luxury-dashboard [class*="max-h-"][class*="overflow-y-auto"] { max-height: min(60dvh, 32rem); }
+
+  .luxury-footer { padding: 4rem 1rem 2rem !important; }
+}
+
+@media (max-width: 479px) {
+  .luxury-shell section:not(#banner) { padding-top: 4.5rem !important; padding-bottom: 4.5rem !important; }
+
+  .luxury-shell [class*="grid-cols-2"],
+  .luxury-dashboard [class*="grid-cols-2"] { grid-template-columns: minmax(0, 1fr) !important; }
+
+  .luxury-shell [class*="grid-cols-4"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  .luxury-dashboard [class*="p-6"],
+  .luxury-dashboard [class*="p-8"],
+  .luxury-not-found [class*="p-6"] { padding: 1.25rem !important; }
+
+  .luxury-not-found .aspect-square { max-width: 17rem; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .luxury-dashboard main > div { padding: 1.5rem !important; }
+  .luxury-shell section:not(#banner) { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
