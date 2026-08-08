@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Heart } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Heart, Ban } from "lucide-react";
 import { authClient, useSession } from "@/lib/auth-client";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Image from "next/image";
 import Logo from "@/assets/logo.png";
 
-// Premium floating love component with personalized animation parameters
+// Floating love heart component
 const FloatingHeart = ({
   size,
   left,
@@ -47,6 +47,15 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (session) {
+      const isBlocked = (session?.user?.status || "active").toLowerCase() === "blocked";
+      if (isBlocked) {
+        toast.error("Your account has been blocked by Admin Rayhan. Access Denied!");
+        (async () => {
+          await authClient.signOut();
+          router.push("/");
+        })();
+        return;
+      }
       router.push("/dashboard");
     }
   }, [session, router]);
@@ -90,6 +99,15 @@ const LoginPage = () => {
         return;
       }
 
+      if ((data?.user?.status || "").toLowerCase() === "blocked") {
+        await authClient.signOut();
+        toast.error("Your account has been blocked by Admin Rayhan. Access Denied!");
+        setError("Your account has been blocked by Admin Rayhan.");
+        setLoading(false);
+        router.push("/");
+        return;
+      }
+
       toast.success("Welcome back, love! ❤️");
       router.push("/dashboard");
     } catch (err) {
@@ -103,13 +121,8 @@ const LoginPage = () => {
     return (
       <div className="luxury-login flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-rose-50 via-pink-100 to-rose-100 p-4">
         <div className="relative flex items-center justify-center">
-          {/* Outer pulsing ripple effect */}
           <div className="absolute w-24 h-24 bg-rose-400/30 rounded-full animate-ping opacity-75" />
-
-          {/* Inner softer glow */}
           <div className="absolute w-32 h-32 bg-pink-300/20 rounded-full blur-xl animate-pulse" />
-
-          {/* The Beating Heart */}
           <div className="relative transform transition-transform hover:scale-110">
             <svg
               className="w-16 h-16 text-rose-500 fill-current drop-shadow-[0_4px_12px_rgba(244,63,94,0.4)] animate-[heartbeat_1.2s_infinite_ease-in-out]"
@@ -120,7 +133,6 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Cute loading text */}
         <h2 className="mt-8 text-sm font-semibold tracking-widest text-rose-600/80 uppercase animate-pulse text-center">
           Loading our universe...
         </h2>
@@ -145,13 +157,13 @@ const LoginPage = () => {
     );
   }
 
-  if (session) {
+  if (session && (session?.user?.status || "active").toLowerCase() !== "blocked") {
     return null;
   }
 
   return (
     <div className="luxury-login relative min-h-screen flex flex-col justify-between items-center bg-linear-to-tr from-rose-100 via-pink-50 to-red-50 overflow-hidden p-4 sm:p-6 lg:p-8">
-      {/* Background Floating Love Hearts (Staggered Placements) */}
+      {/* Background Floating Love Hearts */}
       <FloatingHeart
         size="24px"
         left="5%"
@@ -198,7 +210,7 @@ const LoginPage = () => {
       {/* Main Container */}
       <div className="w-full flex-1 flex items-center justify-center z-10 my-auto">
         <div className="w-full max-w-5xl bg-white/70 backdrop-blur-2xl border border-pink-200/60 rounded-[2.5rem] shadow-2xl shadow-rose-900/5 grid md:grid-cols-12 overflow-hidden transition-all duration-500 hover:shadow-rose-900/10">
-          {/* Left: Beautiful Couple Side Panel */}
+          {/* Left: Couple Side Panel */}
           <div
             className="hidden md:flex md:col-span-5 flex-col justify-center items-center p-8 lg:p-12 relative bg-cover bg-center bg-no-repeat min-h-137.5"
             style={{
@@ -222,7 +234,7 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Right: Modern Couple Core Login Form */}
+          {/* Right: Modern Login Form */}
           <div className="md:col-span-7 p-6 sm:p-10 md:p-8 lg:p-14 flex flex-col justify-center bg-white/90">
             <div className="space-y-6 max-w-md w-full mx-auto">
               {/* Header */}
@@ -297,22 +309,10 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                {/* Remember Session Toggle */}
-                <div className="flex items-center justify-between text-xs pt-1">
-                  <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none group">
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded border-slate-300 bg-slate-50 text-rose-600 focus:ring-rose-500 cursor-pointer accent-rose-500"
-                    />
-                    <span className="group-hover:text-rose-600 transition-colors">
-                      Keep our connection alive
-                    </span>
-                  </label>
-                </div>
-
                 {/* Inline Errors */}
                 {error && (
-                  <div className="p-3 text-xs bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-center font-medium animate-shake">
+                  <div className="p-3.5 text-xs bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-center font-bold flex items-center justify-center gap-2 animate-shake">
+                    <Ban size={15} className="shrink-0 text-rose-600" />
                     {error}
                   </div>
                 )}
@@ -324,25 +324,7 @@ const LoginPage = () => {
                   className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-medium py-3 rounded-xl shadow-md shadow-rose-600/20 hover:shadow-lg hover:shadow-rose-600/30 transition-all disabled:opacity-50 text-sm group cursor-pointer"
                 >
                   {loading ? (
-                    <svg
-                      className="animate-spin h-4 w-4 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
                       Enter Our Universe

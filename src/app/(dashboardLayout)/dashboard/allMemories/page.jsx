@@ -1,10 +1,14 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSession } from "@/lib/auth-client";
+import { toast } from "react-toastify";
 
-const ALL_MEMORIES = [
+// ─── STATIC "SEED" MEMORIES (always shown alongside dynamic DB memories) ────
+const STATIC_MEMORIES = [
   // --- BANNER IMAGES (Used for the Top Slideshow) ---
   {
-    id: 1,
+    id: "static_1",
+    isStatic: true,
     isBanner: true,
     title: "The Nature Calls",
     date: "May 14, 2026",
@@ -14,7 +18,8 @@ const ALL_MEMORIES = [
     imageUrl: "https://i.ibb.co.com/60ZhcHZW/IMG-20260514-134231.jpg",
   },
   {
-    id: 2,
+    id: "static_2",
+    isStatic: true,
     isBanner: true,
     title: "The First K***",
     date: "May 18, 2026",
@@ -24,7 +29,8 @@ const ALL_MEMORIES = [
     imageUrl: "https://i.ibb.co.com/NvzPGkb/IMG-20260518-144846.jpg",
   },
   {
-    id: 3,
+    id: "static_3",
+    isStatic: true,
     isBanner: true,
     title: "Our First Game",
     date: "May, 2026",
@@ -34,7 +40,8 @@ const ALL_MEMORIES = [
     imageUrl: "https://i.ibb.co.com/kgp6gYRd/20260511-123515-1.jpg",
   },
   {
-    id: 4,
+    id: "static_4",
+    isStatic: true,
     isBanner: true,
     title: "Spicy Food 🌶️",
     date: "June 13, 2026",
@@ -44,7 +51,8 @@ const ALL_MEMORIES = [
     imageUrl: "https://i.ibb.co.com/VrD5PKw/20260613-140455.jpg",
   },
   {
-    id: 5,
+    id: "static_5",
+    isStatic: true,
     isBanner: true,
     title: "Movie Theater",
     date: "May 05, 2026",
@@ -54,12 +62,11 @@ const ALL_MEMORIES = [
     imageUrl: "https://i.ibb.co.com/QjHy6Z1p/IMG-20260505-122313.jpg",
   },
 
-
-  // --- GALLERY IMAGES (Mixed Aspect Ratios for Masonry Look) ---
+  // --- GALLERY IMAGES ---
   {
-    id: 6,
+    id: "static_6",
+    isStatic: true,
     isBanner: false,
-    gridSpan: "col-span-1 md:col-span-2 row-span-2",
     title: "Rainy Afternoon Cafe",
     date: "June 15, 2024",
     category: "dates",
@@ -68,9 +75,9 @@ const ALL_MEMORIES = [
     imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: 7,
+    id: "static_7",
+    isStatic: true,
     isBanner: false,
-    gridSpan: "col-span-1 row-span-1",
     title: "First Anniversary",
     date: "June 15, 2025",
     category: "celebrations",
@@ -79,9 +86,9 @@ const ALL_MEMORIES = [
     imageUrl: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=600&q=80",
   },
   {
-    id: 8,
+    id: "static_8",
+    isStatic: true,
     isBanner: false,
-    gridSpan: "col-span-1 row-span-2",
     title: "Messy Baking Night",
     date: "Oct 12, 2025",
     category: "cozy",
@@ -90,9 +97,9 @@ const ALL_MEMORIES = [
     imageUrl: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80",
   },
   {
-    id: 9,
+    id: "static_9",
+    isStatic: true,
     isBanner: false,
-    gridSpan: "col-span-1 md:col-span-2 row-span-1",
     title: "Road Trip Horizons",
     date: "March 22, 2025",
     category: "trips",
@@ -101,9 +108,9 @@ const ALL_MEMORIES = [
     imageUrl: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80",
   },
   {
-    id: 10,
+    id: "static_10",
+    isStatic: true,
     isBanner: false,
-    gridSpan: "col-span-1 row-span-1",
     title: "Coffee Dates",
     date: "Every Sunday",
     category: "cozy",
@@ -112,9 +119,9 @@ const ALL_MEMORIES = [
     imageUrl: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=600&q=80",
   },
   {
-    id: 11,
+    id: "static_11",
+    isStatic: true,
     isBanner: false,
-    gridSpan: "col-span-1 row-span-1",
     title: "Midnight Picnic",
     date: "Aug 10, 2025",
     category: "dates",
@@ -172,58 +179,201 @@ const THEMES = {
 };
 
 export default function AllMemories() {
+  const { data: session } = useSession();
+
+  // Merged list: dynamic DB memories + static seed memories
+  const [dbMemories, setDbMemories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedImage, setSelectedImage] = useState(null);
-  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    date: "",
+    location: "",
+    category: "dates",
+    desc: "",
+    imageUrl: "",
+    isBanner: false,
+  });
+
   const [activeTheme, setActiveTheme] = useState("rose");
-  const [cardStyle, setCardStyle] = useState("polaroid"); // "polaroid", "minimal", "ticket", "neon"
+  const [cardStyle, setCardStyle] = useState("polaroid");
   const [isStudioOpen, setIsStudioOpen] = useState(false);
 
-  // Slideshow State
-  const bannerImages = ALL_MEMORIES.filter(m => m.isBanner);
-  const galleryImages = ALL_MEMORIES.filter(m => !m.isBanner);
+  // ── Derived role check ──────────────────────────────────────────────────────
+  const userRole = session?.user?.role || "User";
+  const canAddMemory = userRole === "Rayhan" || userRole === "Afrin";
+
+  // ── Fetch from MongoDB ──────────────────────────────────────────────────────
+  const fetchMemories = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/memories");
+      const data = await res.json();
+      if (data.success) {
+        setDbMemories(data.memories || []);
+      }
+    } catch (err) {
+      console.error("Failed to load memories from DB", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMemories();
+  }, [fetchMemories]);
+
+  // ── Combined list: DB first (newest), then static ──────────────────────────
+  const allMemories = [...dbMemories, ...STATIC_MEMORIES];
+
+  const bannerImages = allMemories.filter((m) => m.isBanner);
+  const galleryImages = allMemories.filter((m) => !m.isBanner);
+
+  // ── Slideshow state ─────────────────────────────────────────────────────────
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Auto-play slideshow logic
   useEffect(() => {
     if (bannerImages.length === 0) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % bannerImages.length);
-    }, 5000); // Change slide every 5 seconds
-    
+    }, 5000);
     return () => clearInterval(timer);
   }, [bannerImages.length]);
 
-  // Filter Logic for Grid Gallery
-  const filteredGallery = galleryImages.filter(item => {
-    if (activeFilter === "all") return true;
-    return item.category === activeFilter;
-  });
+  // ── Filter logic for gallery ────────────────────────────────────────────────
+  const filteredGallery = galleryImages.filter((item) =>
+    activeFilter === "all" ? true : item.category === activeFilter
+  );
+
+  // ── Add Memory ─────────────────────────────────────────────────────────────
+  const handleAddMemory = async (e) => {
+    e.preventDefault();
+    if (!formData.title) return;
+    if (!canAddMemory) {
+      toast.error("Only Rayhan and Afrin can add memories.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/memories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("✨ Memory pinned to the scrapbook!");
+        setDbMemories((prev) => [data.memory, ...prev]);
+        setIsAddModalOpen(false);
+        setFormData({
+          title: "",
+          date: "",
+          location: "",
+          category: "dates",
+          desc: "",
+          imageUrl: "",
+          isBanner: false,
+        });
+      } else {
+        toast.error(data.error || "Failed to save memory.");
+      }
+    } catch (err) {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ── Delete Memory ──────────────────────────────────────────────────────────
+  const handleDeleteMemory = async (memory) => {
+    if (!canAddMemory) {
+      toast.error("Only Rayhan and Afrin can delete memories.");
+      return;
+    }
+    if (memory.isStatic) {
+      toast.info("Original memories cannot be removed. 🔒");
+      return;
+    }
+
+    if (!confirm(`Remove "${memory.title}" from the scrapbook?`)) return;
+
+    setDeletingId(memory.id);
+    try {
+      const res = await fetch("/api/memories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: memory.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Memory removed.");
+        setDbMemories((prev) => prev.filter((m) => m.id !== memory.id));
+        if (selectedImage?.id === memory.id) setSelectedImage(null);
+      } else {
+        toast.error(data.error || "Could not delete.");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const colors = THEMES[activeTheme];
 
+  // ── Card Renderers ─────────────────────────────────────────────────────────
   const renderCard = (item) => {
-    const isSpecialGrid = item.gridSpan && item.gridSpan !== 'col-span-1 row-span-1';
-    
-    // 1. POLAROID STYLE
+    const isDeleting = deletingId === item.id;
+
+    const DeleteBtn = () =>
+      canAddMemory && !item.isStatic ? (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteMemory(item);
+          }}
+          disabled={isDeleting}
+          className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-rose-600/80 hover:bg-rose-700 text-white text-xs flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100"
+          title="Remove memory"
+        >
+          {isDeleting ? "…" : "✕"}
+        </button>
+      ) : null;
+
+    const DynamicBadge = () =>
+      !item.isStatic ? (
+        <span className="absolute top-2 left-2 z-20 px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-widest bg-emerald-500 text-white rounded-full shadow opacity-0 group-hover:opacity-100 transition-all">
+          New
+        </span>
+      ) : null;
+
     if (cardStyle === "polaroid") {
       return (
-        <div 
+        <div
           key={item.id}
           onClick={() => setSelectedImage(item)}
           className={`relative p-4 pb-7 rounded-lg shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer group flex flex-col justify-between transform hover:scale-[1.02] border ${colors.border} ${colors.cardBg}`}
         >
-          {/* Aesthetic Tape Header */}
+          <DeleteBtn />
+          <DynamicBadge />
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-20 h-4 bg-amber-200/40 border border-amber-300/10 rotate-1 mix-blend-multiply opacity-80 z-10" />
-          
+
           <div className="w-full aspect-[4/3] rounded-sm overflow-hidden bg-slate-50 relative">
-            <img 
-              src={item.imageUrl} 
+            <img
+              src={item.imageUrl}
               alt={item.title}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
           </div>
-          
+
           <div className="pt-4 text-center px-1">
             <h3 className="font-serif italic font-bold text-slate-800 text-base leading-tight">
               {item.title}
@@ -238,17 +388,18 @@ export default function AllMemories() {
       );
     }
 
-    // 2. MINIMAL GLASS CARD STYLE
     if (cardStyle === "minimal") {
       return (
-        <div 
+        <div
           key={item.id}
           onClick={() => setSelectedImage(item)}
           className={`relative rounded-3xl overflow-hidden group cursor-pointer border ${colors.border} ${colors.cardBg} shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col justify-between`}
         >
+          <DeleteBtn />
+          <DynamicBadge />
           <div className="w-full h-48 overflow-hidden relative">
-            <img 
-              src={item.imageUrl} 
+            <img
+              src={item.imageUrl}
               alt={item.title}
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
@@ -256,7 +407,7 @@ export default function AllMemories() {
               {item.category}
             </span>
           </div>
-          
+
           <div className="p-5 text-left">
             <h3 className={`font-sans font-bold text-lg leading-tight ${colors.textPrimary}`}>
               {item.title}
@@ -273,26 +424,26 @@ export default function AllMemories() {
       );
     }
 
-    // 3. RETRO TICKET STYLE
     if (cardStyle === "ticket") {
       return (
-        <div 
+        <div
           key={item.id}
           onClick={() => setSelectedImage(item)}
           className={`relative rounded-2xl overflow-hidden group cursor-pointer border-2 ${colors.border} ${colors.cardBg} shadow-md hover:shadow-xl transition-all duration-500 flex flex-col justify-between`}
         >
-          {/* Ticket Scalloped Notches */}
+          <DeleteBtn />
+          <DynamicBadge />
           <div className="absolute top-1/2 -left-3 w-6 h-6 rounded-full bg-slate-50 border-r-2 border-slate-200 z-10" />
           <div className="absolute top-1/2 -right-3 w-6 h-6 rounded-full bg-slate-50 border-l-2 border-slate-200 z-10" />
 
           <div className="w-full h-36 overflow-hidden">
-            <img 
-              src={item.imageUrl} 
+            <img
+              src={item.imageUrl}
               alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-20"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           </div>
-          
+
           <div className="p-4 pt-5 text-left flex-1 flex flex-col justify-between">
             <div>
               <div className="flex justify-between items-center text-[9px] font-mono font-extrabold text-rose-500 uppercase tracking-widest">
@@ -303,7 +454,7 @@ export default function AllMemories() {
                 {item.title}
               </h3>
             </div>
-            
+
             <div className="mt-6 pt-3 border-t border-dashed border-slate-300/50 flex justify-between items-center text-[10px] font-mono font-semibold text-slate-400 uppercase">
               <div>
                 <span className="block text-[8px] opacity-60">DATE</span>
@@ -319,22 +470,23 @@ export default function AllMemories() {
       );
     }
 
-    // 4. NEON / CYBER GLOW STYLE
     if (cardStyle === "neon") {
       return (
-        <div 
+        <div
           key={item.id}
           onClick={() => setSelectedImage(item)}
           className="relative rounded-2xl overflow-hidden group cursor-pointer bg-slate-950 border border-fuchsia-500/30 hover:border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.05)] hover:shadow-[0_0_20px_rgba(217,70,239,0.25)] transition-all duration-500 h-80 flex flex-col justify-end p-5 text-left"
         >
-          <img 
-            src={item.imageUrl} 
+          <DeleteBtn />
+          <DynamicBadge />
+          <img
+            src={item.imageUrl}
             alt={item.title}
             className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all duration-700 group-hover:scale-110"
           />
-          
+
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-          
+
           <div className="relative z-10 space-y-2">
             <span className="inline-block px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-widest text-fuchsia-400 bg-fuchsia-950/80 border border-fuchsia-500/30 rounded-full">
               {item.category}
@@ -342,9 +494,7 @@ export default function AllMemories() {
             <h3 className="font-sans text-lg font-black text-white leading-tight uppercase tracking-wide">
               {item.title}
             </h3>
-            <p className="text-slate-300 text-xs line-clamp-2">
-              {item.desc}
-            </p>
+            <p className="text-slate-300 text-xs line-clamp-2">{item.desc}</p>
             <div className="pt-2 flex items-center justify-between text-[9px] font-mono font-bold text-fuchsia-300 uppercase tracking-widest border-t border-fuchsia-500/20">
               <span>📅 {item.date}</span>
               <span>📍 {item.location || "GRID"}</span>
@@ -359,7 +509,7 @@ export default function AllMemories() {
 
   return (
     <section className={`min-h-screen pb-24 font-sans transition-colors duration-500 ${colors.bg}`}>
-      
+
       {/* 1. HERO SLIDESHOW BANNER */}
       <div className="relative w-full h-[50vh] sm:h-[65vh] lg:h-[75vh] overflow-hidden bg-slate-900">
         {bannerImages.map((slide, index) => (
@@ -369,20 +519,22 @@ export default function AllMemories() {
               index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            {/* Image */}
-            <img 
-              src={slide.imageUrl} 
+            <img
+              src={slide.imageUrl}
               alt={slide.title}
               className="w-full h-full object-cover object-center"
             />
-            {/* Dark Gradient Overlay for text readability */}
             <div className={`absolute inset-0 bg-gradient-to-t ${colors.heroOverlay}`} />
-            
-            {/* Slide Content */}
+
             <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-12 md:p-16 text-center sm:text-left text-white max-w-7xl mx-auto">
               <span className="inline-block px-3 py-1 mb-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-rose-500/80 backdrop-blur-sm rounded-full">
                 Featured Memory ✨
               </span>
+              {!slide.isStatic && (
+                <span className="ml-2 inline-block px-2 py-1 mb-3 text-[9px] font-bold uppercase tracking-widest bg-emerald-500/80 backdrop-blur-sm rounded-full">
+                  ✦ New
+                </span>
+              )}
               <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-3">
                 {slide.title}
               </h2>
@@ -398,15 +550,15 @@ export default function AllMemories() {
           </div>
         ))}
 
-        {/* Slideshow Dots Indicators */}
+        {/* Slideshow Dots */}
         <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2">
           {bannerImages.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
               className={`transition-all duration-300 rounded-full ${
-                index === currentSlide 
-                  ? 'w-8 h-2 bg-rose-500' 
+                index === currentSlide
+                  ? 'w-8 h-2 bg-rose-500'
                   : 'w-2 h-2 bg-white/50 hover:bg-white'
               }`}
               aria-label={`Go to slide ${index + 1}`}
@@ -425,10 +577,10 @@ export default function AllMemories() {
         </button>
       </div>
 
-      {/* STYLE STUDIO DRAWER PANEL */}
+      {/* STYLE STUDIO DRAWER */}
       {isStudioOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end animate-fade-in" onClick={() => setIsStudioOpen(false)}>
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm bg-white h-full shadow-2xl p-6 flex flex-col justify-between text-left animate-slide-in overflow-y-auto"
           >
@@ -482,8 +634,8 @@ export default function AllMemories() {
                       key={style.id}
                       onClick={() => setCardStyle(style.id)}
                       className={`p-3 rounded-xl border-2 text-xs font-bold transition-all text-center ${
-                        cardStyle === style.id 
-                          ? "bg-slate-900 text-white border-slate-900 scale-102" 
+                        cardStyle === style.id
+                          ? "bg-slate-900 text-white border-slate-900 scale-102"
                           : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
                       }`}
                     >
@@ -511,17 +663,28 @@ export default function AllMemories() {
         <span className="text-rose-500 font-serif italic text-lg font-semibold block mb-2">
           The Vault
         </span>
-        <h2 className={`text-3xl sm:text-4xl font-serif font-extrabold tracking-tight mb-6 ${colors.textPrimary}`}>
+        <h2 className={`text-3xl sm:text-4xl font-serif font-extrabold tracking-tight mb-2 ${colors.textPrimary}`}>
           All Our Beautiful Moments
         </h2>
-        
-        {/* Filter Buttons */}
-        <div className="flex justify-center flex-wrap gap-2 mb-10">
+
+        {/* DB count indicator */}
+        {!isLoading && dbMemories.length > 0 && (
+          <p className="text-xs font-semibold text-emerald-600 mb-4">
+            ✦ {dbMemories.length} new {dbMemories.length === 1 ? "memory" : "memories"} added by Rayhan & Afrin
+          </p>
+        )}
+        {isLoading && (
+          <p className="text-xs text-slate-400 mb-4 animate-pulse">Loading memories from the vault…</p>
+        )}
+
+        {/* Filter & Add Memory Buttons */}
+        <div className="flex justify-center items-center flex-wrap gap-3 mb-10">
           {[
             { id: "all", label: "Everything", icon: "📸" },
             { id: "dates", label: "Date Nights", icon: "🍷" },
             { id: "trips", label: "Adventures", icon: "✈️" },
-            { id: "cozy", label: "Cozy Days", icon: "☕" }
+            { id: "cozy", label: "Cozy Days", icon: "☕" },
+            { id: "celebrations", label: "Celebrations", icon: "🎉" },
           ].map(filter => (
             <button
               key={filter.id}
@@ -536,42 +699,68 @@ export default function AllMemories() {
               {filter.label}
             </button>
           ))}
+
+          {canAddMemory && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shadow-md bg-rose-600 hover:bg-rose-700 text-white border border-rose-500 cursor-pointer active:scale-95"
+            >
+              <span>✨</span>
+              <span>Pin New Memory</span>
+            </button>
+          )}
         </div>
 
         {/* 3. DYNAMIC SCRAPBOOK GRID */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredGallery.map((item) => renderCard(item))}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-64 rounded-2xl bg-slate-200 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredGallery.map((item) => renderCard(item))}
 
-          {/* Empty State if filter returns nothing */}
-          {filteredGallery.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-white border border-dashed border-slate-200 rounded-3xl">
-              <span className="text-4xl block mb-3">👻</span>
-              <h3 className="font-serif font-bold text-slate-800 text-lg">No memories found</h3>
-              <p className="text-slate-500 text-sm">Looks like we need to go on more {activeFilter} dates!</p>
-            </div>
-          )}
-        </div>
+            {filteredGallery.length === 0 && (
+              <div className="col-span-full py-20 text-center bg-white border border-dashed border-slate-200 rounded-3xl">
+                <span className="text-4xl block mb-3">👻</span>
+                <h3 className="font-serif font-bold text-slate-800 text-lg">No memories found</h3>
+                <p className="text-slate-500 text-sm">
+                  Looks like we need to go on more {activeFilter} adventures!
+                </p>
+                {canAddMemory && (
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="mt-4 px-5 py-2.5 rounded-full text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md transition-all"
+                  >
+                    ✨ Pin the First One
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 4. LIGHTBOX MODAL (When an image is clicked) */}
+      {/* 4. LIGHTBOX MODAL */}
       {selectedImage && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8 bg-slate-950/90 backdrop-blur-md animate-fade-in"
-          onClick={() => setSelectedImage(null)} // Click background to close
+          onClick={() => setSelectedImage(null)}
         >
-          {/* Modal Content */}
-          <div 
+          <div
             className="w-full max-w-5xl bg-white rounded-2xl sm:rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row shadow-2xl"
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking card
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Left: Huge Image */}
+            {/* Left: Image */}
             <div className="w-full md:w-3/5 lg:w-2/3 bg-slate-100 relative h-[40vh] md:h-[70vh]">
-              <img 
-                src={selectedImage.imageUrl} 
+              <img
+                src={selectedImage.imageUrl}
                 alt={selectedImage.title}
                 className="w-full h-full object-cover"
               />
-              <button 
+              <button
                 onClick={() => setSelectedImage(null)}
                 className="absolute top-4 left-4 bg-black/40 hover:bg-black/60 text-white w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-all md:hidden"
               >
@@ -579,9 +768,9 @@ export default function AllMemories() {
               </button>
             </div>
 
-            {/* Right: Memory Details */}
+            {/* Right: Details */}
             <div className="w-full md:w-2/5 lg:w-1/3 p-6 sm:p-10 flex flex-col justify-between bg-white relative">
-              <button 
+              <button
                 onClick={() => setSelectedImage(null)}
                 className="absolute top-6 right-6 text-slate-400 hover:text-rose-500 w-8 h-8 rounded-full flex items-center justify-center transition-all hidden md:flex font-bold"
               >
@@ -590,9 +779,16 @@ export default function AllMemories() {
 
               <div className="space-y-6 mt-4 md:mt-8">
                 <div>
-                  <span className="inline-block px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-extrabold uppercase tracking-widest rounded-full border border-rose-100 mb-4">
-                    {selectedImage.category} 🌸
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap mb-4">
+                    <span className="inline-block px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-extrabold uppercase tracking-widest rounded-full border border-rose-100">
+                      {selectedImage.category} 🌸
+                    </span>
+                    {!selectedImage.isStatic && (
+                      <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[9px] font-extrabold uppercase tracking-widest rounded-full border border-emerald-100">
+                        ✦ New Memory
+                      </span>
+                    )}
+                  </div>
                   <h3 className="font-serif text-3xl font-extrabold text-slate-900 leading-tight">
                     {selectedImage.title}
                   </h3>
@@ -609,14 +805,191 @@ export default function AllMemories() {
                     "{selectedImage.desc}"
                   </p>
                 </div>
+
+                {/* Added by info for dynamic memories */}
+                {selectedImage.addedBy && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1">
+                      Pinned by
+                    </span>
+                    <p className="text-xs font-semibold text-slate-600">
+                      {selectedImage.addedBy}
+                      {selectedImage.addedByRole && (
+                        <span className="ml-2 text-rose-500">({selectedImage.addedByRole})</span>
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* Decorative Footer */}
               <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 <span>Pinned with love ❤️</span>
                 {selectedImage.location && <span>📍 {selectedImage.location}</span>}
               </div>
+
+              {/* Delete from lightbox */}
+              {canAddMemory && !selectedImage.isStatic && (
+                <button
+                  onClick={() => handleDeleteMemory(selectedImage)}
+                  disabled={deletingId === selectedImage.id}
+                  className="mt-3 w-full py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-all"
+                >
+                  {deletingId === selectedImage.id ? "Removing…" : "🗑 Remove Memory"}
+                </button>
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. ADD MEMORY MODAL */}
+      {isAddModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in"
+          onClick={() => setIsAddModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-8 space-y-6 text-slate-900 border border-rose-100 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center border-b border-rose-100 pb-4">
+              <div>
+                <h3 className="font-serif text-2xl font-bold text-slate-900 flex items-center gap-2">
+                  <span>📸</span> Pin a New Memory
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Save a moment forever in Rayhan & Afrin's scrapbook
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 hover:text-rose-600 text-lg font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMemory} className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Memory Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Sunset Coffee at Dhanmondi Lake"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. August 02, 2026"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 text-sm bg-white"
+                  >
+                    <option value="dates">🍷 Date Night</option>
+                    <option value="trips">✈️ Adventure / Trip</option>
+                    <option value="cozy">☕ Cozy Moment</option>
+                    <option value="celebrations">🎉 Celebration</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Uttara Lake Park"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://i.ibb.co/... or any image link"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Memory Story / Description
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Write a sweet memory description..."
+                  value={formData.desc}
+                  onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-500 text-sm"
+                />
+              </div>
+
+              {/* Banner toggle */}
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={formData.isBanner}
+                  onChange={(e) => setFormData({ ...formData, isBanner: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 accent-rose-500"
+                />
+                <span className="text-xs font-bold text-slate-600">
+                  Feature in slideshow banner? 🌟
+                </span>
+              </label>
+
+              <div className="pt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 disabled:bg-rose-300 text-white shadow-md transition-all cursor-pointer flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="animate-spin inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />
+                      Saving…
+                    </>
+                  ) : (
+                    "Save Memory ❤️"
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

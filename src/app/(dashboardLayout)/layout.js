@@ -15,11 +15,15 @@ import {
   Camera,
   Heart,
   FileDown,
+  Ban,
+  ShieldAlert,
+  Home,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import Image from "next/image";
 import Logo from "@/assets/logo.png";
 import AccessDenied from "@/components/Dashboard/AccessDenied";
+import { toast } from "react-toastify";
 
 // Ambient floating hearts for the dashboard backdrop
 const AmbientHeart = ({
@@ -88,6 +92,8 @@ const baseUserLinks = [
 ];
 
 const checkAccess = (pathname, role, isBlocked) => {
+  if (isBlocked) return { allowed: false, allowedRoles: [] };
+
   const path = pathname.replace(/\/$/, "");
   const allRoles = ["user", "afrin", "rayhan"];
 
@@ -103,7 +109,7 @@ const checkAccess = (pathname, role, isBlocked) => {
       allowedRoles: ["rayhan", "afrin"],
     };
 
-    if (path === "/dashboard/allDocuments")
+  if (path === "/dashboard/allDocuments")
     return {
       allowed: role === "rayhan" || role === "afrin",
       allowedRoles: ["rayhan", "afrin"],
@@ -123,16 +129,48 @@ const checkAccess = (pathname, role, isBlocked) => {
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // Tracking state for dynamic logout overlay
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
 
+  const isBlocked =
+    (session?.user?.status || "active").toLowerCase() === "blocked";
+  const rawRole = (session?.user?.role || "user").toLowerCase();
+  const userEmail = (session?.user?.email || "").toLowerCase();
+  const userName = (session?.user?.name || "").toLowerCase();
+
+  let role = rawRole;
+  if (
+    rawRole === "afrin" ||
+    userEmail.includes("afrin") ||
+    userName.includes("afrin")
+  ) {
+    role = "afrin";
+  } else if (
+    rawRole === "rayhan" ||
+    rawRole === "admin" ||
+    userEmail.includes("rayhan") ||
+    userName.includes("rayhan")
+  ) {
+    role = "rayhan";
+  }
+
+  // Redirect unauthenticated or blocked users
   useEffect(() => {
-    if (!sessionLoading && !session && !isLoggingOut) {
-      router.push("/login");
+    if (!sessionLoading) {
+      if (!session && !isLoggingOut) {
+        router.push("/login");
+      } else if (isBlocked) {
+        toast.error("Your account has been blocked by Admin Rayhan. Access Denied!");
+        (async () => {
+          const { authClient } = await import("@/lib/auth-client");
+          await authClient.signOut();
+          router.push("/");
+        })();
+      }
     }
-  }, [session, sessionLoading, router, isLoggingOut]);
+  }, [session, sessionLoading, isBlocked, router, isLoggingOut]);
 
   if (sessionLoading) {
     return (
@@ -156,16 +194,74 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  if (!session && !isLoggingOut) return null;
+  // IF BLOCKED: Do not display any dashboard components, show warning and redirect
+  if (isBlocked) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-950 text-white text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-rose-900/60 shadow-2xl space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-500 flex items-center justify-center mx-auto border border-rose-500/30 animate-pulse">
+            <Ban size={36} />
+          </div>
 
-  const isBlocked =
-    (session?.user?.status || "active").toLowerCase() === "blocked";
-  const role = (session?.user?.role || "user").toLowerCase();
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              ACCOUNT BLOCKED
+            </h2>
+            <p className="text-xs text-rose-200/80 font-medium leading-relaxed">
+              Your account has been blocked by Admin Rayhan. You are not allowed to view any dashboard components or features.
+            </p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-800/60 text-xs font-bold text-rose-300 flex items-center justify-center gap-2">
+            <ShieldAlert size={16} />
+            Redirecting to Home Page...
+          </div>
+
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-lg cursor-pointer"
+          >
+            <Home size={15} />
+            Go to Home Page
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session && !isLoggingOut) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-950 text-white text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-rose-900/60 shadow-2xl space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-rose-500/20 text-rose-500 flex items-center justify-center mx-auto border border-rose-500/30 animate-pulse">
+            <ShieldAlert size={36} />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white tracking-tight">
+              AUTHENTICATION REQUIRED
+            </h2>
+            <p className="text-xs text-rose-200/80 font-medium leading-relaxed">
+              Please sign in to access RayHan & Afrin's Orbit Dashboard.
+            </p>
+          </div>
+
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-lg cursor-pointer"
+          >
+            <User size={15} />
+            Go to Login Page
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   let sidebarLinks = baseUserLinks;
   if (role === "rayhan") sidebarLinks = rayhanLinks;
   else if (role === "afrin") sidebarLinks = afrinLinks;
-  else if (!isBlocked)
+  else
     sidebarLinks = [
       ...baseUserLinks,
       {
@@ -177,11 +273,8 @@ export default function DashboardLayout({ children }) {
 
   const access = checkAccess(pathname, role, isBlocked);
 
-  // Core Orchestrated Dynamic Logout Sequence Handler
   const handleLogout = async () => {
-    setIsLoggingOut(true); // Triggers cinematic transition block
-
-    // Allow the 2.2-second heart particle burst and contraction animation to fully complete
+    setIsLoggingOut(true);
     setTimeout(async () => {
       const { authClient } = await import("@/lib/auth-client");
       await authClient.signOut();
@@ -191,14 +284,12 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div
-      className={`luxury-dashboard min-h-dvh flex bg-linear-to-tr from-rose-50/40 via-pink-50/20 to-slate-50 font-sans selection:bg-rose-500/20 transition-all duration-1000 ${isLoggingOut ? "overflow-hidden pointer-events-none" : ""}`}
+      className={`luxury-dashboard h-dvh max-h-dvh overflow-hidden flex bg-linear-to-tr from-rose-50/40 via-pink-50/20 to-slate-50 font-sans selection:bg-rose-500/20 transition-all duration-1000 ${isLoggingOut ? "pointer-events-none" : ""}`}
     >
       {/* Cinematic Fullscreen Logout Stage Overlay Container */}
       {isLoggingOut && (
         <div className="fixed inset-0 bg-linear-to-br from-rose-950/95 via-red-900/95 to-slate-900/98 backdrop-blur-md flex flex-col items-center justify-center z-99999 animate-[fadeIn_0.5s_ease-out_forwards]">
-          {/* Radial explosion particle ring setup */}
           <div className="relative flex items-center justify-center w-40 h-40">
-            {/* Burst Hearts radiating outwards using variable custom angle/delay properties */}
             {[...Array(8)].map((_, i) => (
               <Heart
                 key={i}
@@ -212,7 +303,6 @@ export default function DashboardLayout({ children }) {
               />
             ))}
 
-            {/* Pulsing Core Dynamic Signature Matrix Heart */}
             <div className="absolute animate-[heartDisintegrate_2s_ease-in-out_infinite] text-white">
               <svg
                 className="w-20 h-20 filter drop-shadow-[0_0_25px_rgba(244,63,94,0.7)] text-rose-500 fill-current"
@@ -223,7 +313,6 @@ export default function DashboardLayout({ children }) {
             </div>
           </div>
 
-          {/* Emotional exit text microcopy */}
           <div className="text-center mt-6 space-y-2 px-4 animate-[textSlideUp_0.6s_ease-out_0.2s_forwards] opacity-0">
             <h3 className="text-xl font-bold text-white tracking-tight">
               Locking our love nest safely...
@@ -348,7 +437,7 @@ export default function DashboardLayout({ children }) {
       </aside>
 
       {/* Primary Dashboard Content Panel Area */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-dvh">
+      <div className="flex-1 min-w-0 flex flex-col h-full min-h-0">
         <header className="lg:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b border-pink-100 sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -362,7 +451,7 @@ export default function DashboardLayout({ children }) {
           <div className="w-9" />
         </header>
 
-        <main className="flex-1 min-h-0 min-w-0 flex flex-col relative overflow-y-auto">
+        <main className="flex-1 min-h-0 min-w-0 flex flex-col relative overflow-y-auto overflow-x-hidden">
           <AmbientHeart
             size="16px"
             left="10%"
@@ -454,7 +543,6 @@ export default function DashboardLayout({ children }) {
             opacity: 0;
           }
           to {
-            transform: translateY(0);
             opacity: 1;
           }
         }

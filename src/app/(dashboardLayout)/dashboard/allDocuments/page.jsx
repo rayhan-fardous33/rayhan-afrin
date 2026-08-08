@@ -93,7 +93,7 @@ export default function DocumentUploadPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 bg-[#FFF9FA] min-h-screen grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="w-full overflow-x-hidden grid grid-cols-1 lg:grid-cols-3 gap-8">
       
       {/* LEFT: Upload & Send Form */}
       <div className="lg:col-span-1 space-y-6">
@@ -266,5 +266,6 @@ export default function DocumentUploadPage() {
       </div>
 
     </div>
+    
   );
 }

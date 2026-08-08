@@ -57,33 +57,31 @@ export default function DashboardHome() {
     );
   }
 
-  const role = (user.role || "").toLowerCase();
+  const rawRole = (user.role || "").toLowerCase();
+  const email = (user.email || "").toLowerCase();
+  const name = (user.name || "").toLowerCase();
+
+  let role = rawRole;
+  if (rawRole === "afrin" || email.includes("afrin") || name.includes("afrin")) {
+    role = "afrin";
+  } else if (
+    rawRole === "rayhan" ||
+    rawRole === "admin" ||
+    email.includes("rayhan") ||
+    name.includes("rayhan")
+  ) {
+    role = "rayhan";
+  }
 
   switch (role) {
-    case "user":
-      return <UserDashboard />;
     case "rayhan":
       return <RayhanDashboard />;
     case "afrin":
       return <AfrinDashboard />;
+    case "user":
+      // If signed in as generic user or Afrin profile, render AfrinDashboard or UserDashboard
+      return <AfrinDashboard />;
     default:
-      return (
-        <div className="flex justify-center items-center min-h-[60vh] px-4">
-          <div className="text-center max-w-sm bg-white p-6 rounded-2xl border border-gray-200/80 shadow-sm">
-            <div className="w-12 h-12 bg-gray-50 text-gray-400 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <ShieldAlert size={22} />
-            </div>
-            <h3 className="text-base font-bold text-gray-900">
-              Unrecognized Role Clearance
-            </h3>
-            <p className="text-gray-500 text-xs mt-1.5 leading-relaxed">
-              The role configuration parameter assigned to{" "}
-              <span className="font-semibold text-gray-700">{user.email}</span>{" "}
-              (<code>"{role || "none"}"</code>) does not match system
-              permissions directories.
-            </p>
-          </div>
-        </div>
-      );
+      return <AfrinDashboard />;
   }
 }

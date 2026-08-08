@@ -1,0 +1,221 @@
+// Static dataset for Rayhan (Admin Role) Dashboard
+
+export const adminProfile = {
+  name: "Rayhan Fardous",
+  role: "Super Admin & Orbit Controller",
+  email: "rayhan@orbit.com",
+  avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+  clearanceLevel: "Level 5 (Full Access)",
+  lastLogin: "Just now",
+  status: "Online & Protecting Orbit",
+  anniversaryDate: "2026-01-14",
+};
+
+export const adminStats = [
+  {
+    id: "total_users",
+    title: "Registered Users",
+    value: "4 Active Users",
+    change: "+1 this month",
+    isPositive: true,
+    description: "1 Admin (Rayhan), 1 VIP (Afrin), 2 Members",
+    icon: "Users",
+    color: "from-rose-500 to-pink-600",
+    lightBg: "bg-rose-50 border-rose-100 text-rose-600",
+    href: "/dashboard/allUsers",
+  },
+  {
+    id: "total_memories",
+    title: "Shared Memories",
+    value: "142 Entries",
+    change: "+14 this week",
+    isPositive: true,
+    description: "Photos, videos & heart-felt journal notes",
+    icon: "Camera",
+    color: "from-pink-500 to-purple-600",
+    lightBg: "bg-pink-50 border-pink-100 text-pink-600",
+    href: "/dashboard/allMemories",
+  },
+  {
+    id: "total_documents",
+    title: "Vault Documents",
+    value: "38 Files",
+    change: "+3 uploaded",
+    isPositive: true,
+    description: "Medical reports, travel passes & keys",
+    icon: "FileText",
+    color: "from-purple-500 to-indigo-600",
+    lightBg: "bg-purple-50 border-purple-100 text-purple-600",
+    href: "/dashboard/allDocuments",
+  },
+  {
+    id: "days_together",
+    title: "Days of Togetherness",
+    value: "190 Days",
+    change: "Forever & Always",
+    isPositive: true,
+    description: "Since January 14, 2026 • Love score 100%",
+    icon: "Heart",
+    color: "from-amber-500 to-rose-500",
+    lightBg: "bg-amber-50 border-amber-100 text-amber-600",
+    href: "/dashboard/profile",
+  },
+];
+
+export const systemMetrics = {
+  storageUsedGB: 14.8,
+  storageTotalGB: 50.0,
+  storagePercent: 29.6,
+  databaseStatus: "Optimal",
+  apiLatencyMs: 14,
+  securityShield: "Active (256-bit Encryption)",
+  lastBackup: "Today at 04:00 AM",
+};
+
+export const memoryCategories = [
+  { name: "Travel & Vacations", count: 54, percentage: 38, color: "bg-rose-500" },
+  { name: "Anniversaries & Dates", count: 36, percentage: 25, color: "bg-purple-500" },
+  { name: "Daily Moments", count: 32, percentage: 23, color: "bg-amber-500" },
+  { name: "Secret Notes & Promises", count: 20, percentage: 14, color: "bg-emerald-500" },
+];
+
+export const monthlyActivity = [
+  { month: "Feb", memories: 12, documents: 4, requests: 2 },
+  { month: "Mar", memories: 18, documents: 6, requests: 5 },
+  { month: "Apr", memories: 22, documents: 3, requests: 3 },
+  { month: "May", memories: 15, documents: 8, requests: 4 },
+  { month: "Jun", memories: 29, documents: 7, requests: 6 },
+  { month: "Jul", memories: 36, documents: 10, requests: 8 },
+];
+
+export const pendingRequests = [
+  {
+    id: "REQ-101",
+    user: "Afrin Yesmin",
+    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
+    type: "Surprise Date Request",
+    title: "Weekend Gateway to Cox's Bazar",
+    dateSubmitted: "2 hours ago",
+    priority: "High",
+    status: "Pending Admin Approval",
+    details: "Afrin requested a 3-day beach trip next weekend. Requires Rayhan's itinerary confirmation.",
+  },
+  {
+    id: "REQ-102",
+    user: "Afrin Yesmin",
+    avatar: "/public/afrin-avatar.png",
+    type: "Document Release",
+    title: "Medical Checkup & Passport Copies",
+    dateSubmitted: "1 day ago",
+    priority: "Medium",
+    status: "Pending Admin Approval",
+    details: "Needs high-resolution PDF release for visa application verification.",
+  },
+  {
+    id: "REQ-103",
+    user: "Alex Karim",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+    type: "Moderator Role Upgrade",
+    title: "Request for System Log Access",
+    dateSubmitted: "3 days ago",
+    priority: "Low",
+    status: "Under Review",
+    details: "Alex requested temporary audit log viewing rights for document moderation.",
+  },
+];
+
+export const recentActivities = [
+  {
+    id: 1,
+    user: "Afrin Yesmin",
+    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
+    action: "Uploaded 5 new high-res memories from 'Sunset Cafe Date'",
+    category: "Memory",
+    time: "15 minutes ago",
+    icon: "Camera",
+    badgeColor: "bg-rose-100 text-rose-700 border-rose-200",
+  },
+  {
+    id: 2,
+    user: "Rayhan Fardous (You)",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    action: "Updated security clearance for 'Flight_Itinerary_Bali.pdf'",
+    category: "Document",
+    time: "1 hour ago",
+    icon: "Lock",
+    badgeColor: "bg-purple-100 text-purple-700 border-purple-200",
+  },
+  {
+    id: 3,
+    user: "Afrin Yesmin",
+    avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
+    action: "Added a surprise wish note in Secret Vault",
+    category: "Wishlist",
+    time: "3 hours ago",
+    icon: "Sparkles",
+    badgeColor: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  {
+    id: 4,
+    user: "System Security Bot",
+    avatar: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&q=80",
+    action: "Automated daily vault cloud backup completed (14.8 GB synced)",
+    category: "System",
+    time: "5 hours ago",
+    icon: "ShieldCheck",
+    badgeColor: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
+  {
+    id: 5,
+    user: "Alex Karim",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+    action: "Logged into Orbit Member portal",
+    category: "User Access",
+    time: "Yesterday",
+    icon: "UserCheck",
+    badgeColor: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+];
+
+export const upcomingEvents = [
+  {
+    id: 1,
+    title: "Rayhan & Afrin's Anniversary",
+    date: "October 14, 2026",
+    daysLeft: 81,
+    category: "Milestone",
+    location: "Sylhet Tea Gardens Resort",
+    highlight: "Special candle-light arrangement planned",
+    color: "from-rose-500 to-pink-500",
+  },
+  {
+    id: 2,
+    title: "Afrin's Surprise Birthday",
+    date: "August 28, 2026",
+    daysLeft: 34,
+    category: "Birthday",
+    location: "Secret Rooftop Venue",
+    highlight: "Custom photobook + necklace gift",
+    color: "from-purple-500 to-indigo-500",
+  },
+  {
+    id: 3,
+    title: "Annual Couple Retreat Trip",
+    date: "December 05, 2026",
+    daysLeft: 133,
+    category: "Travel",
+    location: "Sajek Valley Cottage",
+    highlight: "Stargazing & bonfire session",
+    color: "from-amber-500 to-orange-500",
+  },
+];
+
+export const featuredMemory = {
+  title: "First Rainy Walk at University Lake",
+  date: "July 12, 2024",
+  location: "Dhaka, Bangladesh",
+  image: "https://images.unsplash.com/photo-1518621736915-f3b1c41bfd00?auto=format&fit=crop&w=1200&q=80",
+  caption: "Raindrops falling, shared umbrella, and a promise that built this entire universe together.",
+  likes: 42,
+  tagged: ["Rayhan Fardous", "Afrin Yesmin"],
+};
