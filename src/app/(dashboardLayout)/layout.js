@@ -18,6 +18,7 @@ import {
   Ban,
   ShieldAlert,
   Home,
+  Mail,
 } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import Image from "next/image";
@@ -54,6 +55,11 @@ const rayhanLinks = [
   { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/allUsers", label: "All Users", icon: Users },
   {
+    href: "/dashboard/allNotes",
+    label: "Sweet Notes",
+    icon: Mail,
+  },
+  {
     href: "/dashboard/allMemories",
     label: "All Memories",
     icon: Camera,
@@ -68,6 +74,11 @@ const rayhanLinks = [
 const afrinLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/profile", label: "Profile", icon: User },
+  {
+    href: "/dashboard/allNotes",
+    label: "Sweet Notes",
+    icon: Mail,
+  },
   {
     href: "/dashboard/allMemories",
     label: "All Memories",
@@ -88,7 +99,6 @@ const afrinLinks = [
 const baseUserLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/profile", label: "Profile", icon: User },
-  { href: "/dashboard/requests", label: "My Requests", icon: ClipboardList },
 ];
 
 const checkAccess = (pathname, role, isBlocked) => {
@@ -109,6 +119,12 @@ const checkAccess = (pathname, role, isBlocked) => {
       allowedRoles: ["rayhan", "afrin"],
     };
 
+  if (path === "/dashboard/allNotes")
+    return {
+      allowed: role === "rayhan" || role === "afrin",
+      allowedRoles: ["rayhan", "afrin"],
+    };
+
   if (path === "/dashboard/allDocuments")
     return {
       allowed: role === "rayhan" || role === "afrin",
@@ -117,14 +133,12 @@ const checkAccess = (pathname, role, isBlocked) => {
     
   if (path === "/dashboard/create-request") {
     return {
-      allowed: role === "afrin" || (role === "user" && !isBlocked),
-      allowedRoles: isBlocked ? ["active user", "afrin"] : ["user", "afrin"],
+      allowed: role === "afrin",
+      allowedRoles: ["afrin"],
     };
   }
-  if (path === "/dashboard/requests")
-    return { allowed: role === "user", allowedRoles: ["user"] };
 
-  return { allowed: true, allowedRoles: [] };
+  return { allowed: false, allowedRoles: ["rayhan", "afrin"] };
 };
 
 export default function DashboardLayout({ children }) {
@@ -136,24 +150,15 @@ export default function DashboardLayout({ children }) {
 
   const isBlocked =
     (session?.user?.status || "active").toLowerCase() === "blocked";
-  const rawRole = (session?.user?.role || "user").toLowerCase();
-  const userEmail = (session?.user?.email || "").toLowerCase();
-  const userName = (session?.user?.name || "").toLowerCase();
+  const rawRole = (session?.user?.role || "user").toString().trim().toLowerCase();
 
-  let role = rawRole;
-  if (
-    rawRole === "afrin" ||
-    userEmail.includes("afrin") ||
-    userName.includes("afrin")
-  ) {
-    role = "afrin";
-  } else if (
-    rawRole === "rayhan" ||
-    rawRole === "admin" ||
-    userEmail.includes("rayhan") ||
-    userName.includes("rayhan")
-  ) {
+  let role = "user";
+  if (rawRole === "rayhan" || rawRole === "admin") {
     role = "rayhan";
+  } else if (rawRole === "afrin") {
+    role = "afrin";
+  } else {
+    role = "user";
   }
 
   // Redirect unauthenticated or blocked users
@@ -259,17 +264,13 @@ export default function DashboardLayout({ children }) {
   }
 
   let sidebarLinks = baseUserLinks;
-  if (role === "rayhan") sidebarLinks = rayhanLinks;
-  else if (role === "afrin") sidebarLinks = afrinLinks;
-  else
-    sidebarLinks = [
-      ...baseUserLinks,
-      {
-        href: "/dashboard/create-request",
-        label: "Create Request",
-        icon: FilePlus,
-      },
-    ];
+  if (role === "rayhan") {
+    sidebarLinks = rayhanLinks;
+  } else if (role === "afrin") {
+    sidebarLinks = afrinLinks;
+  } else {
+    sidebarLinks = baseUserLinks;
+  }
 
   const access = checkAccess(pathname, role, isBlocked);
 

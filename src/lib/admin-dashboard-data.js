@@ -51,8 +51,8 @@ export const adminStats = [
   {
     id: "days_together",
     title: "Days of Togetherness",
-    value: "190 Days",
-    change: "Forever & Always",
+    value: "Forever & Growing",
+    change: "Since Jan 14, 2026",
     isPositive: true,
     description: "Since January 14, 2026 • Love score 100%",
     icon: "Heart",

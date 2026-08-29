@@ -18,8 +18,8 @@ import { useSession } from "@/lib/auth-client";
 import { useLogout } from "@/providers/LogoutProvider";
 
 const NAV_LINKS = [
-  { label: "Home", mobileLabel: "Home", target: "banner" },
-  { label: "Story", mobileLabel: "Our Story", target: "story" },
+  { label: "Home", mobileLabel: "Home", href: "/", target: "banner" },
+  { label: "Story", mobileLabel: "Our Story", href: "/story" },
   { label: "Memories", mobileLabel: "Memories", target: "memories" },
   { label: "Fun Activity", mobileLabel: "Fun Activity", href: "/activities" },
 ];
@@ -33,7 +33,7 @@ const springTransition = {
 export default function Navbar({
   partner1 = "RayHan",
   partner2 = "Afrin",
-  anniversaryDate = "2026-01-14T14:18:00",
+  anniversaryDate = "2026-01-14T16:18:00",
 }) {
   const [daysTogether, setDaysTogether] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -122,7 +122,11 @@ export default function Navbar({
     if (link.href) {
       setMobileMenuOpen(false);
       setDropdownOpen(false);
-      router.push(link.href);
+      if (link.href === "/" && pathname === "/") {
+        handleScrollTo(link.target || "banner");
+      } else {
+        router.push(link.href);
+      }
       return;
     }
 
@@ -219,10 +223,10 @@ export default function Navbar({
           {/* Desktop Navigation Link Loop */}
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Desktop navigation">
             {NAV_LINKS.map((link) => {
-              const isActive = link.href ? pathname === link.href : pathname === "/" && activeSection === link.target;
+              const isActive = link.href ? (link.href === "/" ? pathname === "/" && (!activeSection || activeSection === "banner") : pathname === link.href) : pathname === "/" && activeSection === link.target;
               return (
                 <button
-                  key={link.target}
+                  key={link.label}
                   type="button"
                   onClick={() => handleNavigation(link)}
                   className={`
@@ -360,11 +364,11 @@ export default function Navbar({
             >
               <nav className="space-y-2 p-5" aria-label="Mobile navigation">
                 {NAV_LINKS.map((link) => {
-                  const isActive = link.href ? pathname === link.href : pathname === "/" && activeSection === link.target;
+                  const isActive = link.href ? (link.href === "/" ? pathname === "/" && (!activeSection || activeSection === "banner") : pathname === link.href) : pathname === "/" && activeSection === link.target;
 
                   return (
                     <button
-                      key={link.target}
+                      key={link.label}
                       type="button"
                       onClick={() => handleNavigation(link)}
                       className={`

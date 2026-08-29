@@ -54,6 +54,24 @@ function normalizeRole(roleStr) {
 
 export async function GET(req) {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rawRole = (session.user.role || "").toString().trim().toLowerCase();
+    const isRayhan = rawRole === "rayhan" || rawRole === "admin";
+
+    if (!isRayhan) {
+      return NextResponse.json(
+        { error: "Access restricted to Admin Rayhan" },
+        { status: 403 }
+      );
+    }
+
     if (!MONGODB_URI) {
       return NextResponse.json({
         success: true,
@@ -122,8 +140,14 @@ export async function PATCH(req) {
       headers: await headers(),
     });
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const rawRole = (session.user.role || "").toString().trim().toLowerCase();
+    const isRayhan = rawRole === "rayhan" || rawRole === "admin";
+
+    if (!isRayhan) {
+      return NextResponse.json(
+        { error: "Access restricted to Admin Rayhan" },
+        { status: 403 }
+      );
     }
 
     const { userId, role, status } = await req.json();
@@ -180,8 +204,14 @@ export async function DELETE(req) {
       headers: await headers(),
     });
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const rawRole = (session.user.role || "").toString().trim().toLowerCase();
+    const isRayhan = rawRole === "rayhan" || rawRole === "admin";
+
+    if (!isRayhan) {
+      return NextResponse.json(
+        { error: "Access restricted to Admin Rayhan" },
+        { status: 403 }
+      );
     }
 
     const { userId } = await req.json();

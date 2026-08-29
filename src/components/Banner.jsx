@@ -2,9 +2,26 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@heroui/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Heart, MapPin, Music, Pencil, Sparkles, X } from "lucide-react";
+import {
+  ArrowRight,
+  Heart,
+  MapPin,
+  Music,
+  Pencil,
+  Sparkles,
+  X,
+  LogIn,
+  Send,
+  Check,
+  Lock,
+  Mail,
+} from "lucide-react";
+import { useSession } from "@/lib/auth-client";
+import { toast } from "react-toastify";
 
 const counterItems = [
   { key: "years", label: "Yrs" },
@@ -33,7 +50,7 @@ const fadeUp = {
 export default function HeroBanner({
   partner1 = "RayHan",
   partner2 = "Afrin",
-  anniversaryDate = "2026-01-14T14:18:00",
+  anniversaryDate = "2026-01-14T16:18:00",
   nextAdventure = "Weekend Cabin Getaway",
   ourSong = "Lover - Taylor Swift",
   onExploreClick = () => {},
@@ -48,6 +65,9 @@ export default function HeroBanner({
     seconds: 0,
   });
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const { data: session } = useSession();
+  const router = useRouter();
 
   const shouldReduceMotion = useReducedMotion();
 
@@ -225,18 +245,21 @@ export default function HeroBanner({
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col items-center justify-center gap-4 pt-2 sm:flex-row lg:justify-start"
           >
-            <button
-              type="button"
+            <Link
+              href="/story"
               onClick={onExploreClick}
               className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(135deg,#640D14,#C1121F)] px-8 py-4 text-sm font-bold text-white shadow-[0_12px_34px_rgba(193,18,31,0.24)] outline-none transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_12px_40px_rgba(193,18,31,0.45)] focus-visible:ring-2 focus-visible:ring-[#E7B98A]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black active:scale-[0.98] sm:w-auto"
             >
               Our Love Story
               <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </button>
+            </Link>
             <button
               type="button"
-              onClick={onWriteClick}
-              className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#E7B98A]/40 bg-black/30 px-8 py-4 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_12px_34px_rgba(0,0,0,0.28)] outline-none backdrop-blur-[20px] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#D4AF37]/70 hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[#E7B98A]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:w-auto"
+              onClick={() => {
+                if (onWriteClick) onWriteClick();
+                setIsNoteModalOpen(true);
+              }}
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#E7B98A]/40 bg-black/30 px-8 py-4 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_12px_34px_rgba(0,0,0,0.28)] outline-none backdrop-blur-[20px] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#D4AF37]/70 hover:bg-white/[0.05] focus-visible:ring-2 focus-visible:ring-[#E7B98A]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black cursor-pointer sm:w-auto"
             >
               <Pencil size={17} className="text-[#D4AF37] transition-transform duration-300 group-hover:-rotate-6" />
               Write a Sweet Note
@@ -295,6 +318,14 @@ export default function HeroBanner({
         profile={selectedProfile}
         shouldReduceMotion={shouldReduceMotion}
         onClose={() => setSelectedProfile(null)}
+      />
+
+      <SweetNoteModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        session={session}
+        router={router}
+        shouldReduceMotion={shouldReduceMotion}
       />
     </section>
   );
@@ -428,5 +459,308 @@ function InfoRow({ icon, label, value, accent = false }) {
         {value}
       </span>
     </div>
+  );
+}
+
+const TAG_OPTIONS = [
+  "Sweet Wish",
+  "Love Blessing",
+  "Heartfelt Advice",
+  "Warm Memory",
+  "Secret Note",
+];
+
+const EMOJI_STAMPS = ["💌", "💖", "✨", "🌸", "🥂", "🧸"];
+
+function SweetNoteModal({
+  isOpen,
+  onClose,
+  session,
+  router,
+  shouldReduceMotion,
+}) {
+  const [formData, setFormData] = useState({
+    title: "",
+    message: "",
+    tag: "Sweet Wish",
+    emoji: "💌",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const isLoggedIn = Boolean(session?.user);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSuccess(false);
+      setErrorMessage("");
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.message.trim()) {
+      setErrorMessage("Please write a sweet message before sending.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send your note.");
+      }
+
+      setIsSuccess(true);
+      toast.success("Your sweet note was delivered to RayHan & Afrin! 💌");
+      setFormData({
+        title: "",
+        message: "",
+        tag: "Sweet Wish",
+        emoji: "💌",
+      });
+
+      window.setTimeout(() => {
+        onClose();
+        setIsSuccess(false);
+      }, 1600);
+    } catch (err) {
+      setErrorMessage(err.message || "Something went wrong.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+        >
+          <motion.div
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Write a Sweet Note"
+            className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-white/[0.08] bg-[#111111]/95 p-6 sm:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.7),0_0_50px_rgba(193,18,31,0.2)] backdrop-blur-2xl"
+          >
+            {/* Ambient background glow */}
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[#C1121F]/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-[#E7B98A]/15 blur-3xl" />
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-4 top-4 z-20 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-black/40 text-[#B5B5B5] transition hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-[#E7B98A]"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
+
+            {!isLoggedIn ? (
+              /* Unauthenticated View */
+              <div className="py-6 text-center space-y-5">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.15)]">
+                  <Lock size={28} />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E7B98A]">
+                    Private Vault
+                  </span>
+                  <h3 className="font-playfair text-2xl font-bold text-white sm:text-3xl">
+                    Write to RayHan & Afrin
+                  </h3>
+                  <p className="mx-auto max-w-sm text-sm text-[#B5B5B5] leading-relaxed">
+                    Only signed-in friends can send a sweet note directly to RayHan & Afrin's private vault.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      router.push("/login");
+                    }}
+                    className="group inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border border-white/10 bg-[linear-gradient(135deg,#640D14,#C1121F)] px-8 py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-[0_12px_34px_rgba(193,18,31,0.3)] transition hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-[#E7B98A]"
+                  >
+                    <LogIn size={15} />
+                    Sign In to Write Note
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full sm:w-auto rounded-full border border-white/[0.08] bg-black/40 px-6 py-3.5 text-xs font-bold uppercase tracking-[0.14em] text-[#B5B5B5] hover:bg-white/[0.05] hover:text-white transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : isSuccess ? (
+              /* Success View */
+              <div className="py-8 text-center space-y-4">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[#D4AF37]/40 bg-[#D4AF37]/15 text-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.25)] motion-safe:animate-pulse">
+                  <Check size={32} />
+                </div>
+                <h3 className="font-playfair text-2xl font-bold text-white">
+                  Note Delivered 💌
+                </h3>
+                <p className="mx-auto max-w-sm text-xs leading-relaxed text-[#B5B5B5]">
+                  Your sweet note has been safely delivered into RayHan & Afrin's private vault!
+                </p>
+              </div>
+            ) : (
+              /* Authenticated Form */
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="text-center pb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#E7B98A]">
+                    Love Mailbox
+                  </span>
+                  <h3 className="font-playfair text-xl sm:text-2xl font-bold text-white">
+                    Send a Sweet Note
+                  </h3>
+                </div>
+
+                {/* Fixed Recipient Badge (Always to both) */}
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-black/40 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">💌</span>
+                    <div>
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#D4AF37]">
+                        Delivering To:
+                      </span>
+                      <span className="font-playfair text-xs font-bold text-white">
+                        RayHan & Afrin
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-[#B5B5B5]">
+                    <span className="text-xs font-bold text-[#E7B98A]">From:</span>
+                    <span className="truncate max-w-[120px] font-semibold text-white">
+                      {session?.user?.name || session?.user?.email}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Mood / Occasion Tags */}
+                <div>
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#D4AF37]">
+                    Note Theme / Occasion
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {TAG_OPTIONS.map((tag) => {
+                      const isSelected = formData.tag === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, tag }))}
+                          className={`rounded-full border px-3 py-1.5 text-[11px] font-bold transition ${
+                            isSelected
+                              ? "border-[#E7B98A]/50 bg-[#C1121F]/25 text-white shadow-[0_0_16px_rgba(193,18,31,0.2)]"
+                              : "border-white/[0.08] bg-black/30 text-[#B5B5B5] hover:bg-white/[0.05] hover:text-white"
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Emoji Stamps */}
+                <div>
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#D4AF37]">
+                    Choose a Stamp
+                  </span>
+                  <div className="flex gap-2">
+                    {EMOJI_STAMPS.map((emoji) => {
+                      const isSelected = formData.emoji === emoji;
+                      return (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setFormData((prev) => ({ ...prev, emoji }))}
+                          className={`grid h-10 w-10 place-items-center rounded-xl border text-base transition ${
+                            isSelected
+                              ? "border-[#E7B98A]/60 bg-[#E7B98A]/15 shadow-[0_0_16px_rgba(231,185,138,0.25)] scale-110"
+                              : "border-white/[0.08] bg-black/30 hover:bg-white/[0.05]"
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Title Input */}
+                <div>
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#D4AF37]">
+                    Subject / Title
+                  </span>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="E.g., Wishing you both a lifetime of happiness..."
+                    className="w-full rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3 text-sm text-white outline-none placeholder:text-[#B5B5B5]/60 focus:border-[#E7B98A]/50 focus:ring-2 focus:ring-[#E7B98A]/20 transition"
+                  />
+                </div>
+
+                {/* Message Textarea */}
+                <div>
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-[#D4AF37]">
+                    Your Sweet Note
+                  </span>
+                  <textarea
+                    rows={3}
+                    required
+                    value={formData.message}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
+                    placeholder="Write your heartfelt message, blessing, memory, or wish for RayHan & Afrin..."
+                    className="w-full resize-none rounded-2xl border border-white/[0.08] bg-black/35 px-4 py-3 text-sm leading-relaxed text-white outline-none placeholder:text-[#B5B5B5]/60 focus:border-[#E7B98A]/50 focus:ring-2 focus:ring-[#E7B98A]/20 transition"
+                  />
+                </div>
+
+                {errorMessage && (
+                  <p className="text-xs text-[#ff6f7d] text-center font-medium">
+                    {errorMessage}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#640D14,#C1121F)] py-3.5 text-xs font-bold uppercase tracking-[0.16em] text-white shadow-[0_12px_34px_rgba(193,18,31,0.3)] transition hover:scale-[1.01] hover:shadow-[0_12px_40px_rgba(193,18,31,0.45)] focus-visible:ring-2 focus-visible:ring-[#E7B98A] disabled:opacity-50"
+                >
+                  <Send size={15} className="transition group-hover:translate-x-1" />
+                  {isSubmitting ? "Delivering Note..." : "Send to RayHan & Afrin"}
+                </button>
+              </form>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

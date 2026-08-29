@@ -88,21 +88,28 @@ export default function RedesignedProfilePage() {
   const { data: session } = useSession();
   const user = session?.user;
 
-  // Role detection: check if Afrin or Rayhan
-  const rawRole = (user?.role || "").toLowerCase();
-  const userEmail = (user?.email || "").toLowerCase();
-  const userName = (user?.name || "").toLowerCase();
+  // Role detection: 3 strict roles: Rayhan, Afrin, User
+  const rawRole = (user?.role || "user").toString().trim().toLowerCase();
+  const isRayhan = rawRole === "rayhan" || rawRole === "admin";
+  const isAfrin = rawRole === "afrin";
+  const isUser = !isRayhan && !isAfrin;
 
-  const isAfrin =
-    rawRole === "afrin" ||
-    userEmail.includes("afrin") ||
-    userName.includes("afrin");
+  const currentKey = isAfrin ? "afrin" : isRayhan ? "rayhan" : "user";
+  const partnerKey = isAfrin ? "rayhan" : isRayhan ? "afrin" : null;
 
-  const currentKey = isAfrin ? "afrin" : "rayhan";
-  const partnerKey = isAfrin ? "rayhan" : "afrin";
-
-  const currentDefaults = INITIAL_PARTNER_DATA[currentKey];
-  const partnerDefaults = INITIAL_PARTNER_DATA[partnerKey];
+  const currentDefaults = INITIAL_PARTNER_DATA[currentKey] || {
+    name: user?.name || "Member",
+    role: "Orbit Member",
+    email: user?.email || "",
+    avatar: user?.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=400&q=80",
+    location: "Earth",
+    status: "Exploring RayHan & Afrin's Universe",
+    loveLanguage: "Words of Affirmation",
+    favoriteMemory: "Joining this beautiful journey.",
+    birthdate: "Member",
+    phone: user?.phone || "N/A",
+  };
+  const partnerDefaults = partnerKey ? INITIAL_PARTNER_DATA[partnerKey] : null;
 
   // Active Tab
   const [activeTab, setActiveTab] = useState("overview");
@@ -148,20 +155,22 @@ export default function RedesignedProfilePage() {
         });
       }
 
-      const savedPartner = localStorage.getItem(`orbit_profile_${partnerKey}`);
-      if (savedPartner) {
-        const parsedPartner = JSON.parse(savedPartner);
-        setPartnerData({
-          ...partnerDefaults,
-          ...parsedPartner,
-        });
-      } else {
-        setPartnerData(partnerDefaults);
+      if (partnerKey && partnerDefaults) {
+        const savedPartner = localStorage.getItem(`orbit_profile_${partnerKey}`);
+        if (savedPartner) {
+          const parsedPartner = JSON.parse(savedPartner);
+          setPartnerData({
+            ...partnerDefaults,
+            ...parsedPartner,
+          });
+        } else {
+          setPartnerData(partnerDefaults);
+        }
       }
     } catch (e) {
       console.error("Error reading profile from localStorage:", e);
     }
-  }, [user?.email, user?.name, user?.image, isAfrin]);
+  }, [user?.email, user?.name, user?.image, isAfrin, isRayhan, isUser, currentKey, partnerKey]);
 
   // Google Login / First Time Password Mode
   const [isGoogleLogin, setIsGoogleLogin] = useState(true);
@@ -196,7 +205,7 @@ export default function RedesignedProfilePage() {
   const [daysTogether, setDaysTogether] = useState(1380);
 
   useEffect(() => {
-    const anniv = new Date("2026-01-14T14:18:00");
+    const anniv = new Date("2026-01-14T16:18:00");
     const now = new Date();
     const diff = Math.ceil(Math.abs(now - anniv) / (1000 * 60 * 60 * 24));
     setDaysTogether(diff);
@@ -523,69 +532,128 @@ export default function RedesignedProfilePage() {
             </div>
           </div>
 
-          {/* Committed Partner Card (5 Columns) */}
+          {/* Right Column: Committed Partner Card (for Rayhan/Afrin) OR Member Status Card (for User) */}
           <div className="lg:col-span-5 bg-white border border-pink-100 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                <HeartHandshake size={22} className={isAfrin ? "text-rose-500" : "text-pink-500"} />
-                Committed Partner Profile
-              </h2>
-            </div>
+            {isUser ? (
+              <>
+                <div className="border-b border-slate-100 pb-4">
+                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck size={22} className="text-rose-500" />
+                    Member Orbit Status
+                  </h2>
+                </div>
 
-            <div className={`flex items-center gap-4 p-4 rounded-2xl ${isAfrin ? "bg-rose-50/40 border-rose-100" : "bg-pink-50/40 border-pink-100"} border`}>
-              <img
-                src={partnerData.avatar}
-                alt={partnerData.name}
-                className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md shrink-0"
-              />
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900">
-                  {partnerData.name}
-                </h3>
-                <p className="text-xs text-slate-500 font-semibold">
-                  {partnerData.role}
-                </p>
-                <span className={`inline-block mt-1 text-[10px] font-extrabold ${isAfrin ? "text-rose-600 border-rose-200" : "text-pink-600 border-pink-200"} bg-white px-2 py-0.5 rounded-full border uppercase tracking-wider`}>
-                  📍 {partnerData.location}
-                </span>
-              </div>
-            </div>
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-rose-50/40 border border-rose-100">
+                  <img
+                    src={user?.image || "/default-avatar.png"}
+                    alt={user?.name || "Member"}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md shrink-0"
+                  />
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900">
+                      {user?.name || "Registered Member"}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      Orbit Member
+                    </p>
+                    <span className="inline-block mt-1 text-[10px] font-extrabold text-emerald-600 border-emerald-200 bg-white px-2 py-0.5 rounded-full border uppercase tracking-wider">
+                      ● Active Account
+                    </span>
+                  </div>
+                </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Email Contact
-                </span>
-                <span className="font-bold text-slate-800">{partnerData.email}</span>
-              </div>
+                <div className="space-y-3 text-xs">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Registered Email
+                    </span>
+                    <span className="font-bold text-slate-800">{user?.email}</span>
+                  </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Birthday
-                </span>
-                <span className="font-bold text-slate-800">
-                  {partnerData.birthdate}
-                </span>
-              </div>
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Account Role
+                    </span>
+                    <span className="font-bold text-slate-800 uppercase text-rose-600">
+                      {user?.role || "User"}
+                    </span>
+                  </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  {isAfrin ? "His Current Mood" : "Her Current Mood"}
-                </span>
-                <p className="font-semibold text-slate-800 italic">
-                  "{partnerData.status}"
-                </p>
-              </div>
+                  <div className="p-3.5 rounded-xl bg-pink-50/40 border border-pink-100 text-slate-600 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-500 block">
+                      Sanctuary Access
+                    </span>
+                    <p className="font-medium text-xs leading-relaxed">
+                      You are enjoying guest access to RayHan & Afrin's universe. Administrative controls are exclusively reserved for RayHan & Afrin.
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : partnerData && (
+              <>
+                <div className="border-b border-slate-100 pb-4">
+                  <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <HeartHandshake size={22} className={isAfrin ? "text-rose-500" : "text-pink-500"} />
+                    Committed Partner Profile
+                  </h2>
+                </div>
 
-              <div className={`p-3.5 rounded-xl ${isAfrin ? "bg-rose-50/40 border-rose-100 text-rose-600" : "bg-pink-50/40 border-pink-100 text-pink-600"} border space-y-1`}>
-                <span className="text-[10px] font-bold uppercase tracking-wider block">
-                  {isAfrin ? "His Favorite Shared Memory" : "Her Favorite Shared Memory"}
-                </span>
-                <p className="font-medium text-slate-700 italic leading-relaxed">
-                  "{partnerData.favoriteMemory}"
-                </p>
-              </div>
-            </div>
+                <div className={`flex items-center gap-4 p-4 rounded-2xl ${isAfrin ? "bg-rose-50/40 border-rose-100" : "bg-pink-50/40 border-pink-100"} border`}>
+                  <img
+                    src={partnerData.avatar}
+                    alt={partnerData.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md shrink-0"
+                  />
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900">
+                      {partnerData.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      {partnerData.role}
+                    </p>
+                    <span className={`inline-block mt-1 text-[10px] font-extrabold ${isAfrin ? "text-rose-600 border-rose-200" : "text-pink-600 border-pink-200"} bg-white px-2 py-0.5 rounded-full border uppercase tracking-wider`}>
+                      📍 {partnerData.location}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Email Contact
+                    </span>
+                    <span className="font-bold text-slate-800">{partnerData.email}</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Birthday
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      {partnerData.birthdate}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {isAfrin ? "His Current Mood" : "Her Current Mood"}
+                    </span>
+                    <p className="font-semibold text-slate-800 italic">
+                      "{partnerData.status}"
+                    </p>
+                  </div>
+
+                  <div className={`p-3.5 rounded-xl ${isAfrin ? "bg-rose-50/40 border-rose-100 text-rose-600" : "bg-pink-50/40 border-pink-100 text-pink-600"} border space-y-1`}>
+                    <span className="text-[10px] font-bold uppercase tracking-wider block">
+                      {isAfrin ? "His Favorite Shared Memory" : "Her Favorite Shared Memory"}
+                    </span>
+                    <p className="font-medium text-slate-700 italic leading-relaxed">
+                      "{partnerData.favoriteMemory}"
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
