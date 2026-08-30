@@ -1,7 +1,7 @@
 import OurStoryPageClient from "./OurStoryPageClient";
 
 export const metadata = {
-  title: "Our Love Story | RayHan & Afrin",
+  title: "Our Love Story | R ❁ A",
   description: "The complete romantic timeline, love chapters, and cherished milestones of RayHan and Afrin.",
 };
 

@@ -482,7 +482,7 @@ export default function DashboardLayout({ children }) {
             opacity="opacity-10"
           />
 
-          <div className="flex-1 min-h-full w-full p-4 md:p-8 relative z-10">
+          <div className={`flex-1 min-h-full w-full relative z-10 ${pathname?.startsWith("/dashboard/allMemories") ? "p-0" : "p-4 md:p-8"}`}>
             <div className="flex min-h-full w-full min-w-0 flex-col">
               {access.allowed ? (
                 children

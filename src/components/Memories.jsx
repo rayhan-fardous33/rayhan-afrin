@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Camera,
   ImageIcon,
@@ -11,9 +11,17 @@ import {
   Heart,
   MapPin,
   X,
-  Pin
+  Pin,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Calendar,
+  Sparkles,
+  ZoomIn,
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useSession } from "@/lib/auth-client";
+import { toast } from "react-toastify";
 
 const DEFAULT_MEMORIES = [
   {
@@ -23,7 +31,7 @@ const DEFAULT_MEMORIES = [
     location: "Our Cozy Kitchen",
     category: "cozy",
     desc: "Attempted to bake a chocolate souffle from scratch. It completely collapsed, and we ended up eating gooey hot chocolate cake directly out of the ramekins.",
-    imageUrl: "https://i.ibb.co.com/x8Pcw7CN/IMG-20260514-134638.jpg",
+    imageUrl: "https://i.ibb.co.com/kVf8Bcrr/DSC01118-1.jpg",
     rotation: "rotate-1",
   },
   {
@@ -81,6 +89,7 @@ const fadeUp = {
 };
 
 export default function Memories() {
+  const { data: session } = useSession();
   const [memories, setMemories] = useState(DEFAULT_MEMORIES);
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedMemory, setSelectedMemory] = useState(null);
@@ -95,45 +104,118 @@ export default function Memories() {
   });
 
   const shouldReduceMotion = useReducedMotion();
+  const userRole = session?.user?.role || "User";
+  const canManageMemory = ["rayhan", "afrin"].includes(userRole.toLowerCase());
+
+  // ── Fetch dynamic memories from MongoDB ────────────────────────────────────
+  const fetchMemories = useCallback(async () => {
+    try {
+      const res = await fetch("/api/memories");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.memories) && data.memories.length > 0) {
+        // Filter for memories marked for homepage
+        const homeList = data.memories.filter((m) => m.showOnHome !== false && !m.isBanner);
+        const rotations = ["-rotate-3", "-rotate-2", "-rotate-1", "rotate-1", "rotate-2", "rotate-3"];
+        const selectedList = homeList.length > 0 ? homeList : data.memories.filter((m) => !m.isBanner);
+
+        const formatted = selectedList.map((m, idx) => ({
+          ...m,
+          rotation: m.rotation || rotations[idx % rotations.length],
+        }));
+
+        setMemories(formatted);
+      }
+    } catch (err) {
+      console.error("Failed to load homepage memories from MongoDB:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMemories();
+  }, [fetchMemories]);
 
   const filteredMemories = useMemo(() => {
     if (activeFilter === "all") return memories;
     return memories.filter((item) => item.category === activeFilter);
   }, [activeFilter, memories]);
 
+  const currentIndex = useMemo(() => {
+    if (!selectedMemory) return -1;
+    return filteredMemories.findIndex((item) => (item.id || item._id) === (selectedMemory.id || selectedMemory._id));
+  }, [selectedMemory, filteredMemories]);
+
+  const handlePrevMemory = useCallback(() => {
+    if (filteredMemories.length === 0) return;
+    if (currentIndex > 0) {
+      setSelectedMemory(filteredMemories[currentIndex - 1]);
+    } else {
+      setSelectedMemory(filteredMemories[filteredMemories.length - 1]);
+    }
+  }, [currentIndex, filteredMemories]);
+
+  const handleNextMemory = useCallback(() => {
+    if (filteredMemories.length === 0) return;
+    if (currentIndex < filteredMemories.length - 1) {
+      setSelectedMemory(filteredMemories[currentIndex + 1]);
+    } else {
+      setSelectedMemory(filteredMemories[0]);
+    }
+  }, [currentIndex, filteredMemories]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddMemory = (e) => {
+  const handleAddMemory = async (e) => {
     e.preventDefault();
+    if (!formData.title?.trim()) return;
 
     const finalImage = formData.imageUrl.trim() || FALLBACK_IMAGES[formData.category] || FALLBACK_IMAGES.dates;
     const rotations = ["-rotate-3", "-rotate-2", "-rotate-1", "rotate-1", "rotate-2", "rotate-3"];
     const randomRotation = rotations[Math.floor(Math.random() * rotations.length)];
 
-    const newMemory = {
-      id: Date.now(),
-      title: formData.title,
+    const payload = {
+      title: formData.title.trim(),
       date: formData.date || "Today",
       location: formData.location || "Somewhere Beautiful",
       category: formData.category,
       desc: formData.desc,
       imageUrl: finalImage,
-      rotation: randomRotation,
+      showOnHome: true,
+      isBanner: false,
     };
 
-    setMemories((prev) => [newMemory, ...prev]);
-    setIsAddModalOpen(false);
-    setFormData({
-      title: "",
-      date: "",
-      location: "",
-      category: "dates",
-      desc: "",
-      imageUrl: "",
-    });
+    try {
+      const res = await fetch("/api/memories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success("✨ Memory pinned to the scrapbook!");
+        const newMemory = {
+          ...data.memory,
+          rotation: randomRotation,
+        };
+        setMemories((prev) => [newMemory, ...prev]);
+        setIsAddModalOpen(false);
+        setFormData({
+          title: "",
+          date: "",
+          location: "",
+          category: "dates",
+          desc: "",
+          imageUrl: "",
+        });
+      } else {
+        toast.error(data.error || "Failed to pin memory.");
+      }
+    } catch {
+      toast.error("Network error pinning memory.");
+    }
   };
 
   return (
@@ -183,7 +265,7 @@ export default function Memories() {
           })}
         </motion.div>
 
-        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <AnimatePresence mode="popLayout">
             {filteredMemories.length === 0 ? (
               <motion.div
@@ -219,6 +301,10 @@ export default function Memories() {
 
       <MemoryDetailModal
         memory={selectedMemory}
+        totalCount={filteredMemories.length}
+        currentIndex={currentIndex}
+        onPrev={handlePrevMemory}
+        onNext={handleNextMemory}
         shouldReduceMotion={shouldReduceMotion}
         onClose={() => setSelectedMemory(null)}
       />
@@ -258,10 +344,15 @@ function MemoryCard({ memory, shouldReduceMotion, onSelect }) {
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.08)_42%,rgba(0,0,0,0.82)_100%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.2)_40%,rgba(0,0,0,0.85)_100%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          
+          <div className="absolute top-3 right-3 rounded-full bg-black/60 p-2 text-white/90 opacity-0 backdrop-blur-md transition-all duration-300 group-hover:opacity-100 group-hover:scale-105">
+            <ZoomIn size={15} className="text-[#E7B98A]" />
+          </div>
+
           <div className="absolute inset-x-0 bottom-0 flex translate-y-3 items-center gap-1.5 p-4 text-xs font-bold text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
             <MapPin size={14} className="text-[#E7B98A]" />
-            {memory.location}
+            <span className="truncate">{memory.location}</span>
           </div>
         </div>
       </div>
@@ -278,7 +369,47 @@ function MemoryCard({ memory, shouldReduceMotion, onSelect }) {
   );
 }
 
-function MemoryDetailModal({ memory, shouldReduceMotion, onClose }) {
+function MemoryDetailModal({
+  memory,
+  totalCount,
+  currentIndex,
+  onPrev,
+  onNext,
+  shouldReduceMotion,
+  onClose,
+}) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const handleCloseModal = useCallback(() => {
+    setIsFullscreen(false);
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!memory) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          handleCloseModal();
+        }
+      } else if (!isFullscreen) {
+        if (e.key === "ArrowLeft") onPrev();
+        if (e.key === "ArrowRight") onNext();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = "unset";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [memory, isFullscreen, handleCloseModal, onPrev, onNext]);
+
   return (
     <AnimatePresence>
       {memory && (
@@ -286,38 +417,196 @@ function MemoryDetailModal({ memory, shouldReduceMotion, onClose }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-          onClick={onClose}
+          transition={{ duration: 0.22 }}
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/85 p-3 sm:p-6 md:p-8 backdrop-blur-md"
+          onClick={handleCloseModal}
         >
+          {/* Main Modal Box */}
           <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative max-w-lg w-full rounded-3xl border border-white/10 bg-[#111] p-6 shadow-2xl"
+            initial={shouldReduceMotion ? false : { opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+            className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#0d0d0d]/95 shadow-[0_25px_80px_rgba(0,0,0,0.8),0_0_50px_rgba(193,18,31,0.15)] backdrop-blur-2xl md:flex-row sm:rounded-[32px]"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Top Close Button (Visible on mobile and desktop) */}
             <button
               type="button"
-              onClick={onClose}
-              className="absolute right-4 top-4 rounded-full bg-black/50 p-2 text-white hover:bg-white/10"
+              onClick={handleCloseModal}
+              className="absolute right-3.5 top-3.5 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition-all duration-200 hover:border-[#E7B98A]/50 hover:bg-black/90 hover:text-white focus-visible:ring-2 focus-visible:ring-[#E7B98A]"
+              aria-label="Close image modal"
             >
               <X size={18} />
             </button>
-            <img
-              src={memory.imageUrl}
-              alt={memory.title}
-              className="w-full rounded-2xl aspect-video object-cover mb-4"
-            />
-            <div className="flex items-center justify-between text-xs text-[#B5B5B5] mb-2 font-mono">
-              <span>{memory.date}</span>
-              <span className="flex items-center gap-1">
-                <MapPin size={12} className="text-[#E7B98A]" />
-                {memory.location}
-              </span>
+
+            {/* Left / Top: Full Responsive Uncropped Image Section */}
+            <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black/60 p-3 sm:p-6 md:p-8 min-h-[280px] sm:min-h-[380px] md:min-h-[480px]">
+              {/* Blurred background image backdrop glow */}
+              <img
+                src={memory.imageUrl}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-25 blur-3xl scale-125"
+              />
+
+              {/* Full Image Display - uncropped, responsive with object-contain */}
+              <div className="relative z-10 flex h-full w-full items-center justify-center">
+                <img
+                  src={memory.imageUrl}
+                  alt={memory.title}
+                  onClick={() => setIsFullscreen(true)}
+                  className="max-h-[44vh] sm:max-h-[55vh] md:max-h-[72vh] w-auto max-w-full cursor-zoom-in rounded-xl sm:rounded-2xl object-contain shadow-2xl transition-transform duration-300 hover:scale-[1.01]"
+                />
+              </div>
+
+              {/* Fullscreen Zoom Trigger Overlay Button */}
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/70 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md transition-all duration-200 hover:border-[#E7B98A]/60 hover:bg-black hover:text-white"
+                title="View full-screen image"
+              >
+                <Maximize2 size={13} className="text-[#E7B98A]" />
+                <span className="hidden sm:inline">Full Image</span>
+              </button>
+
+              {/* Quick Slide Navigation Arrows for Image Area */}
+              {totalCount > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onPrev}
+                    className="absolute left-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition-all duration-200 hover:border-[#E7B98A]/50 hover:bg-black hover:text-white"
+                    aria-label="Previous memory"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onNext}
+                    className="absolute right-3 top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-black/60 text-white/80 backdrop-blur-md transition-all duration-200 hover:border-[#E7B98A]/50 hover:bg-black hover:text-white"
+                    aria-label="Next memory"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
             </div>
-            <h3 className="font-playfair text-2xl font-bold mb-3 text-white">{memory.title}</h3>
-            <p className="text-sm leading-relaxed text-[#B5B5B5]">{memory.desc}</p>
+
+            {/* Right / Bottom: Story Details & Metadata Section */}
+            <div className="relative flex w-full flex-col justify-between overflow-y-auto border-t border-white/[0.08] bg-[#111111]/90 p-5 sm:p-7 md:w-[340px] lg:w-[380px] md:border-l md:border-t-0">
+              <div>
+                {/* Category badge & Counter */}
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E7B98A]/30 bg-[#C1121F]/20 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#E7B98A]">
+                    <Sparkles size={11} />
+                    {CATEGORY_LABELS[memory.category] || memory.category}
+                  </span>
+                  {totalCount > 1 && (
+                    <span className="text-[11px] font-mono font-medium text-[#888]">
+                      {currentIndex + 1} / {totalCount}
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <h3 className="font-playfair text-2xl font-bold italic leading-tight text-white sm:text-3xl">
+                  {memory.title}
+                </h3>
+
+                {/* Location & Date */}
+                <div className="mt-3 flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-[#B5B5B5]">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar size={13} className="text-[#E7B98A]" />
+                    <span className="font-medium">{memory.date}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={13} className="text-[#E7B98A]" />
+                    <span className="font-medium truncate max-w-[160px]">{memory.location}</span>
+                  </div>
+                </div>
+
+                {/* Story Description */}
+                <div className="mt-5 border-l-2 border-[#E7B98A]/40 pl-3.5">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#E7B98A] mb-1">
+                    The Memory
+                  </p>
+                  <p className="text-sm leading-relaxed text-[#D1D1D1] font-light">
+                    {memory.desc}
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Footer with Controls */}
+              <div className="mt-6 flex items-center justify-between border-t border-white/[0.08] pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#E7B98A] transition-colors duration-200 hover:text-white"
+                >
+                  <ZoomIn size={14} />
+                  View Full Resolution
+                </button>
+
+                {totalCount > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={onPrev}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-all duration-200 hover:border-[#E7B98A]/40 hover:bg-white/10"
+                      aria-label="Previous polaroid"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onNext}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white transition-all duration-200 hover:border-[#E7B98A]/40 hover:bg-white/10"
+                      aria-label="Next polaroid"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
+
+          {/* Immersive Pure Fullscreen Lightbox Mode */}
+          <AnimatePresence>
+            {isFullscreen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 p-2 sm:p-6 backdrop-blur-xl"
+                onClick={() => setIsFullscreen(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(false)}
+                  className="absolute right-4 top-4 z-70 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-md transition-all duration-200 hover:bg-white/20"
+                  aria-label="Close full screen"
+                >
+                  <X size={22} />
+                </button>
+
+                <div className="relative flex h-full w-full items-center justify-center">
+                  <img
+                    src={memory.imageUrl}
+                    alt={memory.title}
+                    className="max-h-[92vh] max-w-[94vw] rounded-lg object-contain shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/70 px-4 py-2 text-center text-xs text-white/90 backdrop-blur-md">
+                    <span className="font-playfair font-bold text-[#E7B98A]">{memory.title}</span> • {memory.location} ({memory.date})
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>
@@ -332,7 +621,7 @@ function AddMemoryModal({ isOpen, formData, shouldReduceMotion, onClose, onChang
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
         >
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.96 }}

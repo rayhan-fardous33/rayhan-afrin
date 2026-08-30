@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 const DEFAULT_CAPSULES = [
   {
     id: 1,
-    sender: "Alex",
-    receiver: "Maya",
+    sender: "RayHan",
+    receiver: "Afrin",
     title: "To open on our next Anniversary! 🥂",
     message: "If you are reading this, it means we made it to another beautiful year together! Thank you for being my teammate, my laughter, and my safest home. I love you more with every single rotation of the earth. Here is to all our next steps! ❤️",
     unlockDate: "2027-06-15T00:00:00", // Future lock date
@@ -14,8 +14,8 @@ const DEFAULT_CAPSULES = [
   },
   {
     id: 2,
-    sender: "Maya",
-    receiver: "Alex",
+    sender: "Afrin",
+    receiver: "RayHan",
     title: "Read this when you're having a stressful day ☕",
     message: "Hey love! Just a reminder that you are incredibly smart, capable, and hardworking. Do not let the small bugs or stressful presentation details dim your light. Take a deep breath, stretch your shoulders, and remember that I am waiting at home with warm tea and the biggest hug. You've got this! 💪✨",
     unlockDate: "2026-07-02T12:00:00", // Set closer for testing/interactive purposes
@@ -50,7 +50,7 @@ export default function FutureCapsule() {
 
   // Time Capsule Form State
   const [capsuleTitle, setCapsuleTitle] = useState("");
-  const [capsuleSender, setCapsuleSender] = useState("Alex");
+  const [capsuleSender, setCapsuleSender] = useState("RayHan");
   const [capsuleMsg, setCapsuleMsg] = useState("");
   const [capsuleDate, setCapsuleDate] = useState("");
   const [showAddCapsule, setShowAddCapsule] = useState(false);
@@ -110,7 +110,7 @@ export default function FutureCapsule() {
     const newCapsule = {
       id: Date.now(),
       sender: capsuleSender,
-      receiver: capsuleSender === "Alex" ? "Maya" : "Alex",
+      receiver: capsuleSender === "RayHan" ? "Afrin" : "RayHan",
       title: capsuleTitle,
       message: capsuleMsg,
       unlockDate: new Date(capsuleDate).toISOString(),
@@ -447,8 +447,8 @@ export default function FutureCapsule() {
                     onChange={(e) => setCapsuleSender(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs focus:ring-1 focus:ring-indigo-400"
                   >
-                    <option value="Alex">Alex 🙋‍♂️</option>
-                    <option value="Maya">Maya 🙋‍♀️</option>
+                    <option value="RayHan">RayHan 🙋‍♂️</option>
+                    <option value="Afrin">Afrin 🙋‍♀️</option>
                   </select>
                 </div>
                 <div>

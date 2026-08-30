@@ -136,7 +136,7 @@ export default function HeroBanner({
   return (
     <section
       id="banner"
-      className="relative flex min-h-[90vh] items-center justify-center overflow-hidden bg-[#050505] px-4 pb-20 pt-28 text-white sm:pt-32"
+      className="relative flex min-h-[90vh] items-center justify-center overflow-hidden bg-[#050505] px-4 sm:px-6 lg:px-8 pb-20 pt-28 sm:pt-32 text-white"
     >
       <div
         aria-hidden="true"
@@ -168,7 +168,7 @@ export default function HeroBanner({
         initial={shouldReduceMotion ? false : "hidden"}
         animate="visible"
         transition={{ staggerChildren: shouldReduceMotion ? 0 : 0.12 }}
-        className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 lg:grid-cols-12"
+        className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-12"
       >
         <div className="space-y-7 text-center lg:col-span-7 lg:text-left">
           <motion.div
@@ -379,7 +379,7 @@ function ProfileCard({ profile, shouldReduceMotion, onClose }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
         >
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.94 }}
@@ -549,7 +549,7 @@ function SweetNoteModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
         >
           <motion.div
             initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.95 }}

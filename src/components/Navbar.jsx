@@ -174,7 +174,7 @@ export default function Navbar({
         {...entranceAnimation}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className={`
-          pointer-events-auto w-full max-w-7xl overflow-visible
+          pointer-events-auto w-full max-w-6xl overflow-visible
           rounded-[28px] border border-white/[0.08]
           bg-[rgba(20,20,20,0.75)] shadow-[0_20px_60px_rgba(0,0,0,0.45),0_0_40px_rgba(193,18,31,0.15)]
           backdrop-blur-[20px] transition-all duration-500 ease-out
