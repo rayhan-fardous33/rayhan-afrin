@@ -222,7 +222,7 @@ export default function MixtapeJukebox() {
         </div>
 
         {/* Main Jukebox Interface Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-5xl mx-auto items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-stretch">
           {/* LEFT SIDE: CASSETTE TAPE DECK PLAYER */}
           <div className="lg:col-span-6 bg-slate-900 border border-slate-800 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl flex flex-col justify-between min-h-112.5">
             {/* Retro Tape Deck brand frame */}
@@ -465,7 +465,7 @@ export default function MixtapeJukebox() {
 
       {/* MODAL: ADD SONGS TO MIXTAPE */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white border border-rose-100 rounded-3xl shadow-2xl p-6 sm:p-8 relative text-left">
             <button
               onClick={() => setShowAddModal(false)}

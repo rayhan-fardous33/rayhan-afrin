@@ -57,20 +57,15 @@ export default function DashboardHome() {
     );
   }
 
-  const rawRole = (user.role || "").toLowerCase();
-  const email = (user.email || "").toLowerCase();
-  const name = (user.name || "").toLowerCase();
+  const rawRole = (user.role || "user").toString().trim().toLowerCase();
 
-  let role = rawRole;
-  if (rawRole === "afrin" || email.includes("afrin") || name.includes("afrin")) {
-    role = "afrin";
-  } else if (
-    rawRole === "rayhan" ||
-    rawRole === "admin" ||
-    email.includes("rayhan") ||
-    name.includes("rayhan")
-  ) {
+  let role = "user";
+  if (rawRole === "rayhan" || rawRole === "admin") {
     role = "rayhan";
+  } else if (rawRole === "afrin") {
+    role = "afrin";
+  } else {
+    role = "user";
   }
 
   switch (role) {
@@ -79,9 +74,7 @@ export default function DashboardHome() {
     case "afrin":
       return <AfrinDashboard />;
     case "user":
-      // If signed in as generic user or Afrin profile, render AfrinDashboard or UserDashboard
-      return <AfrinDashboard />;
     default:
-      return <AfrinDashboard />;
+      return <UserDashboard />;
   }
 }
